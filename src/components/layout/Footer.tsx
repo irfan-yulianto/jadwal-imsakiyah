@@ -21,7 +21,15 @@ export default function Footer() {
             </a>
           </p>
           <p className="text-[10px] text-slate-300 dark:text-slate-600">
-            Sistem Informasi & Generator Jadwal Imsakiyah
+            &copy; 2026 Created by Irfan Yulianto &middot;{" "}
+            <a
+              href="https://github.com/irfan-yulianto/jadwal-imsakiyah"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-slate-400 transition-colors hover:text-emerald-600 dark:text-slate-500 dark:hover:text-emerald-400"
+            >
+              GitHub
+            </a>
           </p>
         </div>
       </div>
