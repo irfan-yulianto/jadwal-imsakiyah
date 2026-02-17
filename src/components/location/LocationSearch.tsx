@@ -126,14 +126,14 @@ export default function LocationSearch() {
   return (
     <div ref={containerRef} className="relative w-full max-w-[260px]">
       <div className="relative">
-        <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300" />
+        <SearchIcon size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-500" />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setIsOpen(true)}
           placeholder="Cari kota..."
-          className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+          className="w-full rounded-lg border border-slate-200/80 bg-slate-50/80 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
         />
         {isSearching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -143,16 +143,16 @@ export default function LocationSearch() {
       </div>
 
       {isOpen && results.length > 0 && (
-        <ul className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-xl border border-slate-100 bg-white py-1 shadow-xl shadow-black/[0.08]">
+        <ul className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-lg border border-slate-100 bg-white py-1 shadow-xl shadow-black/[0.08] dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/30">
           {results.map((city) => (
             <li key={city.id}>
               <button
                 type="button"
                 onClick={() => handleSelect(city)}
-                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-emerald-50"
+                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
               >
-                <MapPinIcon size={14} className="shrink-0 text-slate-300" />
-                <span className="text-xs font-semibold text-slate-700">
+                <MapPinIcon size={14} className="shrink-0 text-slate-300 dark:text-slate-500" />
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
                   {city.lokasi}
                 </span>
               </button>

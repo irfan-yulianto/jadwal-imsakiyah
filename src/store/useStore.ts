@@ -39,6 +39,10 @@ interface AppState {
   // Offline mode indicator
   isOffline: boolean;
   setIsOffline: (offline: boolean) => void;
+
+  // Theme
+  theme: "light" | "dark";
+  setTheme: (theme: "light" | "dark") => void;
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -82,4 +86,14 @@ export const useStore = create<AppState>((set) => ({
   // Offline
   isOffline: false,
   setIsOffline: (offline) => set({ isOffline: offline }),
+
+  // Theme
+  theme: "dark",
+  setTheme: (theme) => {
+    if (typeof window !== "undefined") {
+      localStorage.setItem("theme", theme);
+      document.documentElement.classList.toggle("dark", theme === "dark");
+    }
+    set({ theme });
+  },
 }));

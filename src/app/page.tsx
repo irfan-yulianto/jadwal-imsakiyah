@@ -22,26 +22,26 @@ export default function Home() {
       {/* Spacer for fixed header */}
       <div className="h-16" />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-4">
         {/* Hero: Full-width countdown */}
-        <div className="animate-fade-in mb-5">
+        <div className="animate-fade-in mb-3">
           <CountdownTimer />
         </div>
 
         {/* Today's prayer times */}
-        <div className="animate-fade-in mb-6" style={{ animationDelay: "100ms" }}>
+        <div className="animate-fade-in mb-4" style={{ animationDelay: "100ms" }}>
           <TodayCard />
         </div>
 
         {/* Content area */}
-        <div className="grid gap-5 md:grid-cols-[1fr_380px]">
+        <div className="grid gap-4 md:grid-cols-[1fr_360px]">
           {/* Schedule Table — always visible on desktop */}
           <div className={activeTab === "jadwal" ? "block" : "hidden md:block"}>
             <ScheduleTable />
           </div>
 
           {/* Generator sidebar — always visible on desktop */}
-          <div className={`space-y-5 ${activeTab === "generator" ? "block" : "hidden md:block"}`}>
+          <div className={`space-y-4 ${activeTab === "generator" ? "block" : "hidden md:block"}`}>
             <PdfGenerator />
             <ImageGenerator />
           </div>
@@ -51,13 +51,13 @@ export default function Home() {
       <Footer />
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-md">
           <button
             type="button"
             onClick={() => setActiveTab("jadwal")}
             className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
-              activeTab === "jadwal" ? "text-emerald-600" : "text-slate-400"
+              activeTab === "jadwal" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
             }`}
           >
             <CalendarIcon size={20} />
@@ -67,7 +67,7 @@ export default function Home() {
             type="button"
             onClick={() => setActiveTab("generator")}
             className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
-              activeTab === "generator" ? "text-emerald-600" : "text-slate-400"
+              activeTab === "generator" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
             }`}
           >
             <DownloadIcon size={20} />
@@ -77,7 +77,7 @@ export default function Home() {
             href="https://bimasislam.kemenag.go.id"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 text-slate-400 transition-colors hover:text-slate-600"
+            className="flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400"
           >
             <FileTextIcon size={20} />
             <span className="text-[10px] font-semibold">Sumber</span>

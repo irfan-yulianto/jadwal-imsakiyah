@@ -101,22 +101,15 @@ export default function CountdownTimer() {
   const PrayerIcon = nextPrayer ? PRAYER_ICON_MAP[nextPrayer.key] : null;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-6 text-white shadow-xl shadow-green-900/20 md:p-8">
-      {/* Decorative mosque silhouette */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.06]">
-        <svg viewBox="0 0 800 400" className="absolute bottom-0 left-0 h-full w-full" preserveAspectRatio="xMidYMax slice">
-          <path d="M0,400 L0,300 Q50,280 100,300 L100,250 Q125,180 150,250 L150,300 Q200,280 250,300 L250,200 Q300,50 350,200 L350,180 Q400,30 450,180 L450,200 Q500,50 550,200 L550,300 Q600,280 650,300 L650,250 Q675,180 700,250 L700,300 Q750,280 800,300 L800,400 Z" fill="currentColor"/>
-        </svg>
-      </div>
-
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-4 text-white shadow-xl shadow-green-900/20 md:p-6">
       {/* Geometric pattern overlay */}
-      <div className="pointer-events-none absolute inset-0 opacity-[0.04]" style={{
+      <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M20 0l4 8h-8zM0 20l8-4v8zM40 20l-8 4v-8zM20 40l-4-8h8z'/%3E%3C/g%3E%3C/svg%3E")`,
       }} />
 
       <div className="relative z-10">
         {/* Location badge */}
-        <div className="mb-4 flex items-center gap-1.5">
+        <div className="mb-3 flex items-center gap-1.5">
           <MapPinIcon size={14} className="text-green-300" />
           <span className="text-xs font-medium text-green-300">
             {location.cityName}, {location.province}
@@ -128,52 +121,52 @@ export default function CountdownTimer() {
 
         {nextPrayer ? (
           <div className="text-center">
-            <div className="mb-3 flex items-center justify-center gap-2">
-              {PrayerIcon && <PrayerIcon size={20} className="text-amber-300" />}
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-200">
+            <div className="mb-2 flex items-center justify-center gap-2">
+              {PrayerIcon && <PrayerIcon size={18} className="text-amber-300" />}
+              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-200">
                 Menuju Waktu {nextPrayer.name}
               </p>
             </div>
 
             {/* Countdown digits */}
-            <div className="flex items-center justify-center gap-2 md:gap-3">
-              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm md:px-6 md:py-4">
-                <span className="font-mono text-4xl font-extrabold tracking-tight md:text-6xl">
+            <div className="flex items-center justify-center gap-1.5 md:gap-2">
+              <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
+                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
                   {time.hours}
                 </span>
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-green-300">Jam</p>
+                <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Jam</p>
               </div>
-              <span className="animate-countdown-pulse font-mono text-3xl font-bold text-green-300 md:text-5xl">:</span>
-              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm md:px-6 md:py-4">
-                <span className="font-mono text-4xl font-extrabold tracking-tight md:text-6xl">
+              <span className="animate-countdown-pulse font-mono text-2xl font-bold text-green-300 md:text-4xl">:</span>
+              <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
+                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
                   {time.minutes}
                 </span>
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-green-300">Menit</p>
+                <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Menit</p>
               </div>
-              <span className="animate-countdown-pulse font-mono text-3xl font-bold text-green-300 md:text-5xl">:</span>
-              <div className="rounded-2xl bg-white/10 px-4 py-3 backdrop-blur-sm md:px-6 md:py-4">
-                <span className="font-mono text-4xl font-extrabold tracking-tight md:text-6xl">
+              <span className="animate-countdown-pulse font-mono text-2xl font-bold text-green-300 md:text-4xl">:</span>
+              <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
+                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
                   {time.seconds}
                 </span>
-                <p className="mt-1 text-[10px] font-medium uppercase tracking-wider text-green-300">Detik</p>
+                <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Detik</p>
               </div>
             </div>
 
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-4 py-1.5">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-500/20 px-3 py-1">
               <span className="text-sm font-bold text-amber-300">
                 {nextPrayer.time} {location.timezone}
               </span>
             </div>
           </div>
         ) : (
-          <div className="py-4 text-center">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-green-300">
+          <div className="py-3 text-center">
+            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-300">
               Waktu Sholat Hari Ini
             </p>
-            <p className="mt-3 text-lg font-medium text-green-100">
+            <p className="mt-2 text-base font-medium text-green-100">
               Semua waktu sholat telah berlalu
             </p>
-            <p className="mt-1 text-sm text-green-300/70">
+            <p className="mt-1 text-xs text-green-300/70">
               Jadwal akan diperbarui esok hari
             </p>
           </div>
