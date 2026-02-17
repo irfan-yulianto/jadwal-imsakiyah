@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Si-Imsak — Jadwal Imsakiyah Ramadan 1447H/2026
 
-## Getting Started
+Aplikasi web jadwal imsakiyah dan waktu sholat untuk seluruh kota/kabupaten di Indonesia. Menampilkan countdown real-time menuju waktu sholat berikutnya, jadwal harian & bulanan, serta fitur download PDF dan gambar untuk kebutuhan masjid.
 
-First, run the development server:
+## Fitur
+
+- **Countdown Real-time** — Timer mundur menuju waktu sholat berikutnya, berjalan 24/7 secara siklis (termasuk transisi Isya ke Imsak besok)
+- **Jadwal Hari Ini** — Kartu waktu sholat hari ini dengan highlight waktu sholat yang sedang berlaku
+- **Tabel Jadwal Bulanan** — Navigasi antar bulan untuk melihat jadwal lengkap
+- **Tanggal Hijriyah** — Konversi otomatis ke kalender Hijriyah (Sya'ban, Ramadan, Syawal 1447H)
+- **Deteksi Lokasi** — Geolocation dengan 83+ kota referensi di seluruh Indonesia
+- **Pencarian Kota** — Cari kota/kabupaten dari database Kemenag RI via MyQuran API
+- **Generator PDF** — Download jadwal dalam format PDF siap cetak
+- **Generator Gambar** — Export jadwal sebagai gambar PNG untuk Instagram Story dan kartu bulanan
+- **Dark Mode** — Default dark mode dengan toggle light/dark
+- **Offline Support** — Cache jadwal di localStorage untuk akses tanpa internet
+- **Responsive** — Optimal di mobile dan desktop dengan bottom navigation pada mobile
+
+## Tech Stack
+
+| Kategori | Teknologi |
+|----------|-----------|
+| Framework | Next.js 16 (App Router, Turbopack) |
+| UI | React 19, Tailwind CSS 4 |
+| State | Zustand 5 |
+| PDF | @react-pdf/renderer |
+| Image Export | html-to-image |
+| Bahasa | TypeScript 5 |
+
+## Sumber Data
+
+Jadwal sholat bersumber dari **API MyQuran** (`api.myquran.com/v2/sholat`) yang mengambil data resmi dari **Kementerian Agama Republik Indonesia (Kemenag RI)**.
+
+## Memulai
+
+### Prasyarat
+
+- Node.js 18+
+- npm
+
+### Instalasi
+
+```bash
+git clone <repo-url>
+cd jadwal-imsakiyah
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build Production
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## Struktur Project
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/
+│   ├── api/
+│   │   ├── cities/route.ts      # Proxy pencarian kota ke MyQuran API
+│   │   └── schedule/route.ts    # Proxy jadwal sholat ke MyQuran API
+│   ├── layout.tsx               # Root layout (font, metadata, theme init)
+│   └── page.tsx                 # Halaman utama
+├── components/
+│   ├── generator/
+│   │   ├── ImageGenerator.tsx   # Export gambar PNG (Story & Monthly)
+│   │   ├── PdfGenerator.tsx     # Download PDF jadwal
+│   │   ├── PdfDocument.tsx      # Template dokumen PDF
+│   │   ├── DailyCard.tsx        # Kartu jadwal harian (untuk gambar)
+│   │   └── MonthlyCard.tsx      # Kartu jadwal bulanan (untuk gambar)
+│   ├── layout/
+│   │   ├── Header.tsx           # Header dengan logo, search, theme toggle
+│   │   └── Footer.tsx           # Footer
+│   ├── location/
+│   │   └── LocationSearch.tsx   # Search kota + geolocation + offline detection
+│   ├── schedule/
+│   │   ├── CountdownTimer.tsx   # Countdown real-time ke sholat berikutnya
+│   │   ├── TodayCard.tsx        # Kartu waktu sholat hari ini
+│   │   └── ScheduleTable.tsx    # Tabel jadwal bulanan + navigasi bulan
+│   └── ui/
+│       └── Icons.tsx            # Icon components (Lucide-style SVG)
+├── lib/
+│   ├── api.ts                   # Client API (fetch + offline cache)
+│   ├── constants.ts             # Konfigurasi (Ramadan date, default location, timezone map)
+│   ├── hijri.ts                 # Konversi tanggal Hijriyah
+│   ├── rate-limit.ts            # Rate limiter untuk API routes
+│   ├── time.ts                  # Sinkronisasi waktu server (NTP-style)
+│   └── timezone.ts              # Mapping timezone Indonesia (WIB/WITA/WIT)
+├── store/
+│   └── useStore.ts              # Zustand store (location, schedule, countdown, theme)
+└── types/
+    └── index.ts                 # TypeScript types & interfaces
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Keamanan
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Input validation pada semua API routes (city_id, year, month, keyword)
+- Rate limiting (30 req/menit per IP)
+- Security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy)
+- Sanitasi input pencarian kota
+- Tidak menyimpan data personal pengguna
 
-## Deploy on Vercel
+## Deployment
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Dioptimalkan untuk deployment di [Vercel](https://vercel.com):
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run build
+```
+
+API routes menggunakan ISR cache 24 jam untuk meminimalkan request ke upstream API.
+
+## Lisensi
+
+MIT

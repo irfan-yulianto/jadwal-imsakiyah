@@ -2,8 +2,8 @@ import { CitySearchResponse, ScheduleResponse } from "@/types";
 
 const API_BASE = "/api";
 
-export async function searchCities(keyword: string): Promise<CitySearchResponse> {
-  const res = await fetch(`${API_BASE}/cities?q=${encodeURIComponent(keyword)}`);
+export async function searchCities(keyword: string, signal?: AbortSignal): Promise<CitySearchResponse> {
+  const res = await fetch(`${API_BASE}/cities?q=${encodeURIComponent(keyword)}`, { signal });
   if (!res.ok) throw new Error("Failed to search cities");
   return res.json();
 }
@@ -37,7 +37,11 @@ export async function getSchedule(
     if (typeof window !== "undefined") {
       const cached = localStorage.getItem(cacheKey);
       if (cached) {
-        return JSON.parse(cached);
+        try {
+          return JSON.parse(cached);
+        } catch {
+          localStorage.removeItem(cacheKey);
+        }
       }
     }
     throw error;

@@ -164,7 +164,7 @@ export default function CountdownTimer() {
   const PrayerIcon = nextPrayer ? PRAYER_ICON_MAP[nextPrayer.key] : null;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-4 text-white shadow-xl shadow-green-900/20 md:p-6">
+    <div role="timer" aria-live="polite" aria-label="Countdown waktu sholat" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-4 text-white shadow-xl shadow-green-900/20 md:p-6">
       {/* Geometric pattern overlay */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M20 0l4 8h-8zM0 20l8-4v8zM40 20l-8 4v-8zM20 40l-4-8h8z'/%3E%3C/g%3E%3C/svg%3E")`,

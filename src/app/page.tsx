@@ -1,14 +1,22 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import CountdownTimer from "@/components/schedule/CountdownTimer";
 import TodayCard from "@/components/schedule/TodayCard";
 import ScheduleTable from "@/components/schedule/ScheduleTable";
-import PdfGenerator from "@/components/generator/PdfGenerator";
-import ImageGenerator from "@/components/generator/ImageGenerator";
 import { CalendarIcon, DownloadIcon, FileTextIcon } from "@/components/ui/Icons";
+
+const PdfGenerator = dynamic(() => import("@/components/generator/PdfGenerator"), {
+  ssr: false,
+  loading: () => <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />,
+});
+const ImageGenerator = dynamic(() => import("@/components/generator/ImageGenerator"), {
+  ssr: false,
+  loading: () => <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />,
+});
 
 type ActiveTab = "jadwal" | "generator";
 

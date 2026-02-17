@@ -16,9 +16,23 @@ export default function LocationSearch() {
   const [isDetecting, setIsDetecting] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const { location, setLocation, setSchedule, setScheduleLoading, setScheduleError, setViewMonth, setCountdownSchedule } =
+  const { location, setLocation, setSchedule, setScheduleLoading, setScheduleError, setViewMonth, setCountdownSchedule, setIsOffline } =
     useStore();
+
+  // Online/offline detection
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    setIsOffline(!navigator.onLine);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, [setIsOffline]);
 
   const fetchSchedule = useCallback(
     async (cityId: string, daerah: string, loc: Location) => {
@@ -121,6 +135,7 @@ export default function LocationSearch() {
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (abortRef.current) abortRef.current.abort();
     if (query.length < 2) {
       setResults([]);
       setIsOpen(false);
@@ -128,20 +143,23 @@ export default function LocationSearch() {
     }
     setIsSearching(true);
     debounceRef.current = setTimeout(async () => {
+      const controller = new AbortController();
+      abortRef.current = controller;
       try {
-        const res = await searchCities(query);
-        if (res.status && res.data) {
+        const res = await searchCities(query, controller.signal);
+        if (!controller.signal.aborted && res.status && res.data) {
           setResults(res.data);
           setIsOpen(true);
         }
-      } catch {
-        setResults([]);
+      } catch (err) {
+        if (!controller.signal.aborted) setResults([]);
       } finally {
-        setIsSearching(false);
+        if (!controller.signal.aborted) setIsSearching(false);
       }
     }, 300);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
+      if (abortRef.current) abortRef.current.abort();
     };
   }, [query]);
 
@@ -209,6 +227,13 @@ export default function LocationSearch() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => results.length > 0 && setIsOpen(true)}
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setIsOpen(false);
+              setQuery("");
+              (e.target as HTMLInputElement).blur();
+            }
+          }}
           placeholder="Cari kota..."
           className="w-full rounded-lg border border-slate-200/80 bg-slate-50/80 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
         />
