@@ -1,65 +1,92 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import CountdownTimer from "@/components/schedule/CountdownTimer";
+import TodayCard from "@/components/schedule/TodayCard";
+import ScheduleTable from "@/components/schedule/ScheduleTable";
+import PdfGenerator from "@/components/generator/PdfGenerator";
+import ImageGenerator from "@/components/generator/ImageGenerator";
+import { CalendarIcon, DownloadIcon, FileTextIcon } from "@/components/ui/Icons";
+
+type ActiveTab = "jadwal" | "generator";
 
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("jadwal");
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex min-h-screen flex-col">
+      <Header />
+
+      {/* Spacer for fixed header */}
+      <div className="h-16" />
+
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+        {/* Hero: Full-width countdown */}
+        <div className="animate-fade-in mb-5">
+          <CountdownTimer />
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        {/* Today's prayer times */}
+        <div className="animate-fade-in mb-6" style={{ animationDelay: "100ms" }}>
+          <TodayCard />
+        </div>
+
+        {/* Content area */}
+        <div className="grid gap-5 md:grid-cols-[1fr_380px]">
+          {/* Schedule Table — always visible on desktop */}
+          <div className={activeTab === "jadwal" ? "block" : "hidden md:block"}>
+            <ScheduleTable />
+          </div>
+
+          {/* Generator sidebar — always visible on desktop */}
+          <div className={`space-y-5 ${activeTab === "generator" ? "block" : "hidden md:block"}`}>
+            <PdfGenerator />
+            <ImageGenerator />
+          </div>
         </div>
       </main>
+
+      <Footer />
+
+      {/* Mobile bottom navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden">
+        <div className="mx-auto flex max-w-md">
+          <button
+            type="button"
+            onClick={() => setActiveTab("jadwal")}
+            className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
+              activeTab === "jadwal" ? "text-emerald-600" : "text-slate-400"
+            }`}
+          >
+            <CalendarIcon size={20} />
+            <span className="text-[10px] font-semibold">Jadwal</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("generator")}
+            className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
+              activeTab === "generator" ? "text-emerald-600" : "text-slate-400"
+            }`}
+          >
+            <DownloadIcon size={20} />
+            <span className="text-[10px] font-semibold">Download</span>
+          </button>
+          <a
+            href="https://bimasislam.kemenag.go.id"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 text-slate-400 transition-colors hover:text-slate-600"
+          >
+            <FileTextIcon size={20} />
+            <span className="text-[10px] font-semibold">Sumber</span>
+          </a>
+        </div>
+      </nav>
+
+      {/* Spacer for mobile bottom nav */}
+      <div className="h-16 md:hidden" />
     </div>
   );
 }
