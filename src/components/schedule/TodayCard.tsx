@@ -9,7 +9,7 @@ import { PRAYER_ICON_MAP, CalendarIcon } from "@/components/ui/Icons";
 import { useMemo } from "react";
 
 export default function TodayCard() {
-  const { schedule, location, timeOffset } = useStore();
+  const { countdownSchedule, schedule, location, timeOffset } = useStore();
   const utcOffset = getUtcOffset(location.timezone);
 
   const { todaySchedule, hijriDate, todayDateStr, currentPrayerIdx } = useMemo(() => {
@@ -17,7 +17,7 @@ export default function TodayCard() {
     const localTime = new Date(now.getTime() + utcOffset * 3600000);
     const dateStr = localTime.toISOString().split("T")[0];
 
-    const today = schedule.data.find((s) => s.date === dateStr);
+    const today = countdownSchedule.find((s) => s.date === dateStr);
     const hijri = getHijriDate(dateStr);
 
     let prayerIdx = -1;
@@ -39,7 +39,7 @@ export default function TodayCard() {
     }
 
     return { todaySchedule: today, hijriDate: hijri, todayDateStr: dateStr, currentPrayerIdx: prayerIdx };
-  }, [schedule.data, timeOffset, utcOffset]);
+  }, [countdownSchedule, timeOffset, utcOffset]);
 
   if (!todaySchedule) {
     return (

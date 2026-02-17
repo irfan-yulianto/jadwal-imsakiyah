@@ -5,7 +5,13 @@ import { getHijriDate } from "@/lib/hijri";
 import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { ScheduleDay } from "@/types";
-import { useMemo, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useCallback } from "react";
+import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icons";
+
+const MONTH_NAMES = [
+  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+];
 
 const TIME_COLUMNS = [
   { key: "imsak", label: "Imsak", isImsak: true },
@@ -66,7 +72,9 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
   const hijri = getHijriDate(day.date);
   const dayName = day.tanggal?.split(",")[0] || "";
   const dateNum = day.date.split("-")[2];
-  const hijriDay = hijri ? hijri.split(" ")[0] : "";
+  const hijriParts = hijri ? hijri.replace(" 1447H", "").split(" ") : [];
+  const hijriDay = hijriParts[0] || "";
+  const hijriMonth = hijriParts.slice(1).join(" ") || "";
 
   return (
     <div
@@ -91,9 +99,9 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {dayName}
             </span>
-            {hijriDay && (
+            {hijriDay && hijriMonth && (
               <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                {hijriDay} Ramadan
+                {hijriDay} {hijriMonth}
               </span>
             )}
           </div>
@@ -137,8 +145,54 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
   );
 }
 
+function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday }: {
+  viewMonth: number;
+  viewYear: number;
+  isCurrentMonth: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onToday: () => void;
+}) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <button
+        type="button"
+        onClick={onPrev}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+        aria-label="Bulan sebelumnya"
+      >
+        <ChevronLeftIcon size={16} />
+      </button>
+
+      <div className="flex items-center gap-2">
+        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+          {MONTH_NAMES[viewMonth - 1]} {viewYear}
+        </h2>
+        {!isCurrentMonth && (
+          <button
+            type="button"
+            onClick={onToday}
+            className="cursor-pointer rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
+          >
+            Hari Ini
+          </button>
+        )}
+      </div>
+
+      <button
+        type="button"
+        onClick={onNext}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+        aria-label="Bulan berikutnya"
+      >
+        <ChevronRightIcon size={16} />
+      </button>
+    </div>
+  );
+}
+
 export default function ScheduleTable() {
-  const { schedule, location, timeOffset } = useStore();
+  const { schedule, location, timeOffset, viewMonth, viewYear, fetchScheduleForMonth } = useStore();
   const utcOffset = getUtcOffset(location.timezone);
   const todayRef = useRef<HTMLDivElement>(null);
 
@@ -148,18 +202,48 @@ export default function ScheduleTable() {
     return localTime.toISOString().split("T")[0];
   }, [timeOffset, utcOffset]);
 
+  const now = useMemo(() => new Date(), []);
+  const isCurrentMonth = viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
+
+  const goToPrevMonth = useCallback(() => {
+    const prev = viewMonth === 1 ? 12 : viewMonth - 1;
+    const prevYear = viewMonth === 1 ? viewYear - 1 : viewYear;
+    fetchScheduleForMonth(prevYear, prev);
+  }, [viewMonth, viewYear, fetchScheduleForMonth]);
+
+  const goToNextMonth = useCallback(() => {
+    const next = viewMonth === 12 ? 1 : viewMonth + 1;
+    const nextYear = viewMonth === 12 ? viewYear + 1 : viewYear;
+    fetchScheduleForMonth(nextYear, next);
+  }, [viewMonth, viewYear, fetchScheduleForMonth]);
+
+  const goToCurrentMonth = useCallback(() => {
+    const n = new Date();
+    fetchScheduleForMonth(n.getFullYear(), n.getMonth() + 1);
+  }, [fetchScheduleForMonth]);
+
   useEffect(() => {
-    if (todayRef.current && !schedule.loading) {
+    if (todayRef.current && !schedule.loading && isCurrentMonth) {
       setTimeout(() => {
         todayRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 500);
     }
-  }, [schedule.loading, todayDate]);
+  }, [schedule.loading, todayDate, isCurrentMonth]);
 
   if (schedule.error) {
     return (
-      <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-center dark:border-red-900/50 dark:bg-red-950/30">
-        <p className="text-sm text-red-600 dark:text-red-400">{schedule.error}</p>
+      <div className="animate-fade-in">
+        <MonthNav
+          viewMonth={viewMonth}
+          viewYear={viewYear}
+          isCurrentMonth={isCurrentMonth}
+          onPrev={goToPrevMonth}
+          onNext={goToNextMonth}
+          onToday={goToCurrentMonth}
+        />
+        <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-center dark:border-red-900/50 dark:bg-red-950/30">
+          <p className="text-sm text-red-600 dark:text-red-400">{schedule.error}</p>
+        </div>
       </div>
     );
   }
@@ -170,6 +254,15 @@ export default function ScheduleTable() {
 
   return (
     <div className="animate-fade-in">
+      <MonthNav
+        viewMonth={viewMonth}
+        viewYear={viewYear}
+        isCurrentMonth={isCurrentMonth}
+        onPrev={goToPrevMonth}
+        onNext={goToNextMonth}
+        onToday={goToCurrentMonth}
+      />
+
       {/* DESKTOP: Table view */}
       <div className="hidden md:block rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
         <div className="overflow-x-auto">
@@ -205,7 +298,9 @@ export default function ScheduleTable() {
                   const hijri = getHijriDate(day.date);
                   const dayName = day.tanggal?.split(",")[0] || "";
                   const dateNum = day.date.split("-")[2];
-                  const hijriDay = hijri ? hijri.split(" ")[0] : "";
+                  const hijriParts = hijri ? hijri.replace(" 1447H", "").split(" ") : [];
+                  const hijriDay = hijriParts[0] || "";
+                  const hijriMonth = hijriParts.slice(1).join(" ") || "";
 
                   return (
                     <tr

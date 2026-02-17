@@ -264,6 +264,22 @@ export function MoonIcon({ size = 24, ...props }: IconProps) {
 }
 
 // Map all prayer keys to their icons
+export function ChevronLeftIcon({ size = 24, ...props }: IconProps) {
+  return (
+    <svg {...defaultProps(size)} {...props}>
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
+  );
+}
+
+export function ChevronRightIcon({ size = 24, ...props }: IconProps) {
+  return (
+    <svg {...defaultProps(size)} {...props}>
+      <path d="M9 18l6-6-6-6" />
+    </svg>
+  );
+}
+
 export const PRAYER_ICON_MAP: Record<string, React.ComponentType<IconProps>> = {
   imsak: ImsakIcon,
   subuh: SubuhIcon,

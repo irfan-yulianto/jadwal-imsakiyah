@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useStore } from "@/store/useStore";
 import { syncServerTime, getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
@@ -13,6 +13,15 @@ interface NextPrayer {
   key: string;
   time: string;
   remainingMs: number;
+  isTomorrow?: boolean;
+}
+
+function getLocalDate(now: Date, utcOffset: number): Date {
+  return new Date(now.getTime() + utcOffset * 3600000);
+}
+
+function getDateStr(localTime: Date): string {
+  return localTime.toISOString().split("T")[0];
 }
 
 function getTodaySchedule(
@@ -20,36 +29,71 @@ function getTodaySchedule(
   now: Date,
   utcOffset: number
 ): ScheduleDay | null {
-  const localTime = new Date(now.getTime() + utcOffset * 3600000);
-  const dateStr = localTime.toISOString().split("T")[0];
+  const dateStr = getDateStr(getLocalDate(now, utcOffset));
   return schedules.find((s) => s.date === dateStr) || null;
 }
 
-function getNextPrayer(
-  schedule: ScheduleDay,
+function getTomorrowSchedule(
+  schedules: ScheduleDay[],
+  now: Date,
+  utcOffset: number
+): ScheduleDay | null {
+  const localTime = getLocalDate(now, utcOffset);
+  const tomorrow = new Date(localTime);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  const dateStr = getDateStr(tomorrow);
+  return schedules.find((s) => s.date === dateStr) || null;
+}
+
+function parseTimeToSeconds(timeStr: string): number {
+  const [h, m] = timeStr.split(":").map(Number);
+  return h * 3600 + m * 60;
+}
+
+function getNextPrayerCyclic(
+  schedules: ScheduleDay[],
   now: Date,
   utcOffset: number
 ): NextPrayer | null {
-  const localTime = new Date(now.getTime() + utcOffset * 3600000);
+  const localTime = getLocalDate(now, utcOffset);
   const localHours = localTime.getUTCHours();
   const localMinutes = localTime.getUTCMinutes();
   const localSeconds = localTime.getUTCSeconds();
   const currentTotalSeconds = localHours * 3600 + localMinutes * 60 + localSeconds;
 
-  for (let i = 0; i < PRAYER_KEYS.length; i++) {
-    const key = PRAYER_KEYS[i];
-    const timeStr = schedule[key];
-    if (!timeStr) continue;
+  const todaySchedule = getTodaySchedule(schedules, now, utcOffset);
 
-    const [h, m] = timeStr.split(":").map(Number);
-    const prayerTotalSeconds = h * 3600 + m * 60;
+  // Try today's remaining prayers
+  if (todaySchedule) {
+    for (let i = 0; i < PRAYER_KEYS.length; i++) {
+      const key = PRAYER_KEYS[i];
+      const timeStr = todaySchedule[key];
+      if (!timeStr) continue;
 
-    if (prayerTotalSeconds > currentTotalSeconds) {
-      const remainingMs = (prayerTotalSeconds - currentTotalSeconds) * 1000;
-      return { name: PRAYER_NAMES[i], key, time: timeStr, remainingMs };
+      const prayerTotalSeconds = parseTimeToSeconds(timeStr);
+      if (prayerTotalSeconds > currentTotalSeconds) {
+        const remainingMs = (prayerTotalSeconds - currentTotalSeconds) * 1000;
+        return { name: PRAYER_NAMES[i], key, time: timeStr, remainingMs };
+      }
     }
   }
 
+  // All today's prayers passed → countdown to tomorrow's Imsak
+  const tomorrowSchedule = getTomorrowSchedule(schedules, now, utcOffset);
+  if (tomorrowSchedule && tomorrowSchedule.imsak) {
+    const tomorrowImsakSeconds = parseTimeToSeconds(tomorrowSchedule.imsak);
+    const secondsLeftToday = 86400 - currentTotalSeconds;
+    const remainingMs = (secondsLeftToday + tomorrowImsakSeconds) * 1000;
+    return {
+      name: "Imsak",
+      key: "imsak",
+      time: tomorrowSchedule.imsak,
+      remainingMs,
+      isTomorrow: true,
+    };
+  }
+
+  // No tomorrow data (end of month) → return null to trigger refetch
   return null;
 }
 
@@ -64,9 +108,11 @@ function formatCountdown(ms: number): { hours: string; minutes: string; seconds:
 }
 
 export default function CountdownTimer() {
-  const { schedule, location, timeOffset, setTimeOffset } = useStore();
+  const { countdownSchedule, location, timeOffset, setTimeOffset, refetchSchedule } = useStore();
   const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null);
   const [time, setTime] = useState({ hours: "--", minutes: "--", seconds: "--" });
+  const lastDateRef = useRef<string>("");
+  const refetchingRef = useRef(false);
 
   useEffect(() => {
     syncServerTime().then(setTimeOffset);
@@ -75,22 +121,39 @@ export default function CountdownTimer() {
   const utcOffset = getUtcOffset(location.timezone);
 
   const computeNextPrayer = useCallback(() => {
-    if (schedule.data.length === 0) return;
+    if (countdownSchedule.length === 0) return;
     const now = getAdjustedTime(timeOffset);
-    const todaySchedule = getTodaySchedule(schedule.data, now, utcOffset);
-    if (!todaySchedule) {
-      setNextPrayer(null);
-      return;
+    const localTime = getLocalDate(now, utcOffset);
+    const currentDateStr = getDateStr(localTime);
+
+    // Auto-refresh: detect date change and refetch if needed
+    if (lastDateRef.current && lastDateRef.current !== currentDateStr && !refetchingRef.current) {
+      const tomorrowSchedule = getTomorrowSchedule(countdownSchedule, now, utcOffset);
+      if (!tomorrowSchedule) {
+        refetchingRef.current = true;
+        refetchSchedule().finally(() => {
+          refetchingRef.current = false;
+        });
+      }
     }
-    const next = getNextPrayer(todaySchedule, now, utcOffset);
+    lastDateRef.current = currentDateStr;
+
+    const next = getNextPrayerCyclic(countdownSchedule, now, utcOffset);
     if (next) {
       setNextPrayer(next);
       setTime(formatCountdown(next.remainingMs));
     } else {
+      // No data available (end of month boundary) → trigger refetch
+      if (!refetchingRef.current) {
+        refetchingRef.current = true;
+        refetchSchedule().finally(() => {
+          refetchingRef.current = false;
+        });
+      }
       setNextPrayer(null);
       setTime({ hours: "--", minutes: "--", seconds: "--" });
     }
-  }, [schedule.data, timeOffset, utcOffset]);
+  }, [countdownSchedule, timeOffset, utcOffset, refetchSchedule]);
 
   useEffect(() => {
     computeNextPrayer();
@@ -124,7 +187,7 @@ export default function CountdownTimer() {
             <div className="mb-2 flex items-center justify-center gap-2">
               {PrayerIcon && <PrayerIcon size={18} className="text-amber-300" />}
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-200">
-                Menuju Waktu {nextPrayer.name}
+                {nextPrayer.isTomorrow ? "Menuju Imsak Besok" : `Menuju Waktu ${nextPrayer.name}`}
               </p>
             </div>
 
@@ -161,14 +224,11 @@ export default function CountdownTimer() {
         ) : (
           <div className="py-3 text-center">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-300">
-              Waktu Sholat Hari Ini
+              Memuat Jadwal...
             </p>
-            <p className="mt-2 text-base font-medium text-green-100">
-              Semua waktu sholat telah berlalu
-            </p>
-            <p className="mt-1 text-xs text-green-300/70">
-              Jadwal akan diperbarui esok hari
-            </p>
+            <div className="mt-3 flex justify-center">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-green-300 border-t-transparent" />
+            </div>
           </div>
         )}
       </div>
