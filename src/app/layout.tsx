@@ -24,10 +24,13 @@ export const metadata: Metadata = {
   keywords: [
     "jadwal imsakiyah",
     "jadwal sholat",
-    "ramadan 2026",
-    "ramadan 1447H",
     "waktu sholat",
     "imsakiyah",
+    "jadwal imsak",
+    "waktu imsak",
+    "jadwal sholat indonesia",
+    "ramadan 2026",
+    "ramadan 1447H",
   ],
   openGraph: {
     title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",

@@ -141,12 +141,17 @@ export const useStore = create<AppState>((set, get) => ({
     set((state) => ({ schedule: { ...state.schedule, loading: true, error: null }, viewMonth: month, viewYear: year }));
     try {
       const res = await getSchedule(location.cityId, year, month);
+      // Only apply result if user hasn't navigated away during fetch
+      const { viewMonth, viewYear } = get();
+      if (viewMonth !== month || viewYear !== year) return;
       if (res.status && res.data?.jadwal) {
         set({ schedule: { data: res.data.jadwal, loading: false, error: null } });
       } else {
         set((state) => ({ schedule: { ...state.schedule, loading: false, error: "Data tidak tersedia untuk bulan ini" } }));
       }
     } catch {
+      const { viewMonth, viewYear } = get();
+      if (viewMonth !== month || viewYear !== year) return;
       set((state) => ({ schedule: { ...state.schedule, loading: false, error: "Gagal memuat jadwal" } }));
     }
   },

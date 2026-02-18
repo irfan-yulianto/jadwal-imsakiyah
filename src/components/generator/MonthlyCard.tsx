@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { ScheduleDay } from "@/types";
-import { getHijriDate, getHijriMonthsForGregorianMonth } from "@/lib/hijri";
+import { getHijriParts, getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 
 interface MonthlyCardProps {
   scheduleData: ScheduleDay[];
@@ -80,8 +80,7 @@ const MonthlyCard = forwardRef<HTMLDivElement, MonthlyCardProps>(
           {scheduleData.map((day, idx) => {
             const dayName = day.tanggal?.split(",")[0] || "";
             const dateNum = day.date?.split("-")[2] || "";
-            const hijri = getHijriDate(day.date);
-            const hijriDay = hijri ? hijri.split(" ")[0] : "";
+            const { day: hijriDay } = getHijriParts(day.date);
 
             return (
               <div

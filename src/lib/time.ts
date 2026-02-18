@@ -12,6 +12,7 @@ export async function syncServerTime(): Promise<number> {
 
     const data = await res.json();
     const serverTime = new Date(data.datetime).getTime();
+    if (isNaN(serverTime)) return 0;
     // Account for network latency (approximate round-trip / 2)
     const latency = (after - before) / 2;
     const adjustedServerTime = serverTime + latency;

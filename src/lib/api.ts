@@ -37,10 +37,10 @@ export async function getSchedule(
       if (!res.ok) throw new Error("Failed to fetch schedule");
       const data: ScheduleResponse = await res.json();
 
-      // Cache to localStorage for offline use
+      // Cache to localStorage for offline use (with timestamp for TTL)
       if (typeof window !== "undefined") {
         try {
-          localStorage.setItem(cacheKey, JSON.stringify(data));
+          localStorage.setItem(cacheKey, JSON.stringify({ _ts: Date.now(), ...data }));
         } catch {
           // localStorage full or Safari private mode
         }
@@ -58,7 +58,13 @@ export async function getSchedule(
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
           try {
-            return JSON.parse(cached);
+            const parsed = JSON.parse(cached);
+            // Reject cache older than 7 days
+            if (parsed._ts && Date.now() - parsed._ts > 7 * 24 * 3600000) {
+              localStorage.removeItem(cacheKey);
+            } else {
+              return parsed;
+            }
           } catch {
             localStorage.removeItem(cacheKey);
           }

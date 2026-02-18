@@ -78,8 +78,11 @@ export default function ImageGenerator() {
         const blob = await res.blob();
         const file = new File([blob], `jadwal-imsakiyah.png`, { type: "image/png" });
         await navigator.share({ files: [file], title: "Jadwal Imsakiyah" });
-      } catch {
-        // User cancelled or share failed
+      } catch (err) {
+        // Fallback to download if share failed (not user cancellation)
+        if (err instanceof Error && err.name !== "AbortError") {
+          handleDownload(type);
+        }
       } finally {
         setIsGenerating(false);
       }
