@@ -38,6 +38,15 @@ export const metadata: Metadata = {
       "Jadwal Imsakiyah real-time untuk seluruh kota di Indonesia. Download PDF & gambar untuk masjid Anda.",
     type: "website",
   },
+  applicationName: "Si-Imsak",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Si-Imsak",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+  },
 };
 
 export default function RootLayout({
@@ -48,6 +57,8 @@ export default function RootLayout({
   return (
     <html lang="id" suppressHydrationWarning>
       <head>
+        <meta name="theme-color" content="#064E3B" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <Script
           id="microsoft-clarity"
           strategy="afterInteractive"
@@ -62,6 +73,13 @@ export default function RootLayout({
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
             __html: `(function(){try{var t=localStorage.getItem('theme');if(t!=='light'){document.documentElement.classList.add('dark')}}catch(e){document.documentElement.classList.add('dark')}})()`,
+          }}
+        />
+        <Script
+          id="sw-register"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}`,
           }}
         />
         {children}

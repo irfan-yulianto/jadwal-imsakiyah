@@ -7,6 +7,7 @@ import Footer from "@/components/layout/Footer";
 import CountdownTimer from "@/components/schedule/CountdownTimer";
 import TodayCard from "@/components/schedule/TodayCard";
 import ScheduleTable from "@/components/schedule/ScheduleTable";
+import InstallBanner from "@/components/pwa/InstallBanner";
 import { CalendarIcon, DownloadIcon, FileTextIcon } from "@/components/ui/Icons";
 
 const PdfGenerator = dynamic(() => import("@/components/generator/PdfGenerator"), {
@@ -39,6 +40,11 @@ export default function Home() {
         {/* Today's prayer times */}
         <div className="animate-fade-in mb-4" style={{ animationDelay: "100ms" }}>
           <TodayCard />
+        </div>
+
+        {/* PWA install banner */}
+        <div className="animate-fade-in mb-4" style={{ animationDelay: "200ms" }}>
+          <InstallBanner />
         </div>
 
         {/* Content area */}
