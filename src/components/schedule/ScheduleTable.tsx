@@ -5,7 +5,7 @@ import { getHijriParts, getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { ScheduleDay } from "@/types";
-import { useMemo, useEffect, useRef, useCallback } from "react";
+import { useMemo, useRef, useCallback } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/ui/Icons";
 
 const MONTH_NAMES = [
@@ -238,13 +238,8 @@ export default function ScheduleTable() {
     fetchScheduleForMonth(n.getFullYear(), n.getMonth() + 1);
   }, [fetchScheduleForMonth]);
 
-  useEffect(() => {
-    if (todayRef.current && !schedule.loading && isCurrentMonth) {
-      setTimeout(() => {
-        todayRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-      }, 500);
-    }
-  }, [schedule.loading, todayDate, isCurrentMonth]);
+  // Today row is highlighted via todayRef but no auto-scroll,
+  // so users land on the countdown section first.
 
   if (schedule.error) {
     return (
