@@ -115,7 +115,7 @@ export const useStore = create<AppState>((set, get) => ({
   theme: "dark",
   setTheme: (theme) => {
     if (typeof window !== "undefined") {
-      localStorage.setItem("theme", theme);
+      try { localStorage.setItem("theme", theme); } catch {}
       document.documentElement.classList.toggle("dark", theme === "dark");
     }
     set({ theme });

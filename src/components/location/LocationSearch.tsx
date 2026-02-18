@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Location } from "@/types";
 import { searchCities, getSchedule } from "@/lib/api";
 import { getTimezone } from "@/lib/timezone";
+import { getCityGuess } from "@/lib/cities";
 import { useStore } from "@/store/useStore";
 import { SearchIcon, MapPinIcon } from "@/components/ui/Icons";
 
@@ -18,8 +19,14 @@ export default function LocationSearch() {
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const { location, setLocation, setSchedule, setScheduleLoading, setScheduleError, setViewMonth, setCountdownSchedule, setIsOffline } =
-    useStore();
+  const location = useStore((s) => s.location);
+  const setLocation = useStore((s) => s.setLocation);
+  const setSchedule = useStore((s) => s.setSchedule);
+  const setScheduleLoading = useStore((s) => s.setScheduleLoading);
+  const setScheduleError = useStore((s) => s.setScheduleError);
+  const setViewMonth = useStore((s) => s.setViewMonth);
+  const setCountdownSchedule = useStore((s) => s.setCountdownSchedule);
+  const setIsOffline = useStore((s) => s.setIsOffline);
 
   // Online/offline detection
   useEffect(() => {
@@ -67,8 +74,8 @@ export default function LocationSearch() {
             const searchRes = await searchCities(cityGuess);
             if (searchRes.status && searchRes.data?.length > 0) {
               const city = searchRes.data[0];
-              localStorage.setItem("selectedLocation", JSON.stringify(city));
-              localStorage.setItem("locationPermissionDismissed", "true");
+              try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
+              try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
               setShowLocationPrompt(false);
               fetchSchedule(city.id, city.daerah || "", city);
             }
@@ -87,20 +94,31 @@ export default function LocationSearch() {
   }, [fetchSchedule]);
 
   useEffect(() => {
-    const savedLocation = localStorage.getItem("selectedLocation");
-    if (savedLocation) {
-      try {
-        const parsed = JSON.parse(savedLocation);
-        fetchSchedule(parsed.id, parsed.daerah || "", parsed);
-        return;
-      } catch {
-        // ignore
+    try {
+      const savedLocation = localStorage.getItem("selectedLocation");
+      if (savedLocation) {
+        try {
+          const parsed = JSON.parse(savedLocation);
+          // Backward compat: detect old v2 numeric IDs and clear them
+          if (/^\d+$/.test(parsed.id)) {
+            localStorage.removeItem("selectedLocation");
+            // Fall through to default location below
+          } else {
+            fetchSchedule(parsed.id, parsed.daerah || "", parsed);
+            return;
+          }
+        } catch {
+          try { localStorage.removeItem("selectedLocation"); } catch {}
+        }
       }
-    }
 
-    // No saved location — show permission prompt and load default
-    const dismissed = localStorage.getItem("locationPermissionDismissed");
-    if (!dismissed) {
+      // No saved location — show permission prompt and load default
+      const dismissed = localStorage.getItem("locationPermissionDismissed");
+      if (!dismissed) {
+        setShowLocationPrompt(true);
+      }
+    } catch {
+      // localStorage unavailable (Safari private mode)
       setShowLocationPrompt(true);
     }
 
@@ -139,6 +157,7 @@ export default function LocationSearch() {
     if (query.length < 2) {
       setResults([]);
       setIsOpen(false);
+      setIsSearching(false);
       return;
     }
     setIsSearching(true);
@@ -147,12 +166,16 @@ export default function LocationSearch() {
       abortRef.current = controller;
       try {
         const res = await searchCities(query, controller.signal);
-        if (!controller.signal.aborted && res.status && res.data) {
-          setResults(res.data);
+        if (!controller.signal.aborted) {
+          const data = res.status && res.data ? res.data : [];
+          setResults(data);
           setIsOpen(true);
         }
       } catch (err) {
-        if (!controller.signal.aborted) setResults([]);
+        if (!controller.signal.aborted) {
+          setResults([]);
+          setIsOpen(true);
+        }
       } finally {
         if (!controller.signal.aborted) setIsSearching(false);
       }
@@ -176,13 +199,13 @@ export default function LocationSearch() {
   const handleSelect = (city: Location) => {
     setQuery("");
     setIsOpen(false);
-    localStorage.setItem("selectedLocation", JSON.stringify(city));
+    try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
     fetchSchedule(city.id, city.daerah || "", city);
   };
 
   const handleDismissPrompt = () => {
     setShowLocationPrompt(false);
-    localStorage.setItem("locationPermissionDismissed", "true");
+    try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
   };
 
   return (
@@ -244,132 +267,30 @@ export default function LocationSearch() {
         )}
       </div>
 
-      {isOpen && results.length > 0 && (
+      {isOpen && (
         <ul className="absolute z-50 mt-1.5 max-h-60 w-full overflow-auto rounded-lg border border-slate-100 bg-white py-1 shadow-xl shadow-black/[0.08] dark:border-slate-700 dark:bg-slate-800 dark:shadow-black/30">
-          {results.map((city) => (
-            <li key={city.id}>
-              <button
-                type="button"
-                onClick={() => handleSelect(city)}
-                className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
-              >
-                <MapPinIcon size={14} className="shrink-0 text-slate-300 dark:text-slate-500" />
-                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
-                  {city.lokasi}
-                </span>
-              </button>
+          {results.length > 0 ? (
+            results.map((city) => (
+              <li key={city.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(city)}
+                  className="flex w-full cursor-pointer items-center gap-2 px-3 py-2 text-left transition-colors hover:bg-emerald-50 dark:hover:bg-emerald-900/30"
+                >
+                  <MapPinIcon size={14} className="shrink-0 text-slate-300 dark:text-slate-500" />
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                    {city.lokasi}
+                  </span>
+                </button>
+              </li>
+            ))
+          ) : (
+            <li className="px-3 py-2.5 text-center text-xs text-slate-400 dark:text-slate-500">
+              Kota tidak ditemukan
             </li>
-          ))}
+          )}
         </ul>
       )}
     </div>
   );
-}
-
-function getCityGuess(lat: number, lng: number): string | null {
-  const cities = [
-    // === SUMATRA ===
-    { name: "Banda Aceh", lat: 5.55, lng: 95.32 },
-    { name: "Lhokseumawe", lat: 5.18, lng: 97.15 },
-    { name: "Medan", lat: 3.6, lng: 98.7 },
-    { name: "Binjai", lat: 3.6, lng: 98.49 },
-    { name: "Pematang Siantar", lat: 2.95, lng: 99.05 },
-    { name: "Padang Sidempuan", lat: 1.38, lng: 99.27 },
-    { name: "Pekanbaru", lat: 0.5, lng: 101.45 },
-    { name: "Dumai", lat: 1.68, lng: 101.45 },
-    { name: "Batam", lat: 1.05, lng: 104.03 },
-    { name: "Tanjung Pinang", lat: 0.92, lng: 104.44 },
-    { name: "Padang", lat: -0.95, lng: 100.35 },
-    { name: "Bukittinggi", lat: -0.3, lng: 100.37 },
-    { name: "Jambi", lat: -1.6, lng: 103.62 },
-    { name: "Palembang", lat: -3.0, lng: 104.75 },
-    { name: "Lubuk Linggau", lat: -3.3, lng: 102.86 },
-    { name: "Bengkulu", lat: -3.8, lng: 102.26 },
-    { name: "Bandar Lampung", lat: -5.43, lng: 105.26 },
-    { name: "Metro", lat: -5.11, lng: 105.31 },
-    { name: "Pangkal Pinang", lat: -2.13, lng: 106.11 },
-
-    // === JAWA ===
-    { name: "Jakarta", lat: -6.2, lng: 106.85 },
-    { name: "Bogor", lat: -6.6, lng: 106.8 },
-    { name: "Depok", lat: -6.4, lng: 106.8 },
-    { name: "Tangerang", lat: -6.17, lng: 106.63 },
-    { name: "Bekasi", lat: -6.24, lng: 107.0 },
-    { name: "Serang", lat: -6.12, lng: 106.15 },
-    { name: "Cilegon", lat: -6.0, lng: 106.05 },
-    { name: "Bandung", lat: -6.9, lng: 107.6 },
-    { name: "Cirebon", lat: -6.71, lng: 108.56 },
-    { name: "Sukabumi", lat: -6.92, lng: 106.93 },
-    { name: "Tasikmalaya", lat: -7.33, lng: 108.22 },
-    { name: "Semarang", lat: -7.0, lng: 110.4 },
-    { name: "Solo", lat: -7.57, lng: 110.82 },
-    { name: "Tegal", lat: -6.87, lng: 109.14 },
-    { name: "Pekalongan", lat: -6.89, lng: 109.67 },
-    { name: "Magelang", lat: -7.47, lng: 110.22 },
-    { name: "Purwokerto", lat: -7.42, lng: 109.23 },
-    { name: "Yogyakarta", lat: -7.8, lng: 110.36 },
-    { name: "Surabaya", lat: -7.25, lng: 112.75 },
-    { name: "Malang", lat: -7.98, lng: 112.63 },
-    { name: "Kediri", lat: -7.82, lng: 112.01 },
-    { name: "Madiun", lat: -7.63, lng: 111.52 },
-    { name: "Jember", lat: -8.17, lng: 113.7 },
-    { name: "Blitar", lat: -8.1, lng: 112.16 },
-    { name: "Banyuwangi", lat: -8.22, lng: 114.35 },
-    { name: "Probolinggo", lat: -7.75, lng: 113.22 },
-
-    // === KALIMANTAN ===
-    { name: "Pontianak", lat: -0.03, lng: 109.34 },
-    { name: "Singkawang", lat: 0.9, lng: 108.98 },
-    { name: "Palangkaraya", lat: -2.21, lng: 113.92 },
-    { name: "Banjarmasin", lat: -3.32, lng: 114.59 },
-    { name: "Banjarbaru", lat: -3.44, lng: 114.83 },
-    { name: "Balikpapan", lat: -1.27, lng: 116.83 },
-    { name: "Samarinda", lat: -0.5, lng: 117.15 },
-    { name: "Tarakan", lat: 3.3, lng: 117.63 },
-    { name: "Tanjung Selor", lat: 2.84, lng: 117.36 },
-
-    // === SULAWESI ===
-    { name: "Makassar", lat: -5.15, lng: 119.4 },
-    { name: "Parepare", lat: -4.01, lng: 119.63 },
-    { name: "Manado", lat: 1.49, lng: 124.84 },
-    { name: "Gorontalo", lat: 0.54, lng: 123.06 },
-    { name: "Palu", lat: -0.9, lng: 119.84 },
-    { name: "Kendari", lat: -3.97, lng: 122.51 },
-    { name: "Mamuju", lat: -2.68, lng: 118.89 },
-    { name: "Bitung", lat: 1.44, lng: 125.19 },
-    { name: "Palopo", lat: -2.99, lng: 120.2 },
-
-    // === BALI & NUSA TENGGARA ===
-    { name: "Denpasar", lat: -8.65, lng: 115.22 },
-    { name: "Singaraja", lat: -8.11, lng: 115.09 },
-    { name: "Mataram", lat: -8.58, lng: 116.1 },
-    { name: "Bima", lat: -8.46, lng: 118.73 },
-    { name: "Sumbawa Besar", lat: -8.49, lng: 117.42 },
-    { name: "Kupang", lat: -10.17, lng: 123.61 },
-    { name: "Ende", lat: -8.84, lng: 121.66 },
-    { name: "Maumere", lat: -8.62, lng: 122.21 },
-
-    // === MALUKU & PAPUA ===
-    { name: "Ambon", lat: -3.69, lng: 128.17 },
-    { name: "Tual", lat: -5.64, lng: 132.75 },
-    { name: "Ternate", lat: 0.79, lng: 127.38 },
-    { name: "Tidore", lat: 0.69, lng: 127.4 },
-    { name: "Jayapura", lat: -2.53, lng: 140.72 },
-    { name: "Sorong", lat: -0.87, lng: 131.25 },
-    { name: "Manokwari", lat: -0.86, lng: 134.08 },
-    { name: "Merauke", lat: -8.49, lng: 140.4 },
-    { name: "Timika", lat: -4.55, lng: 136.89 },
-    { name: "Nabire", lat: -3.37, lng: 135.5 },
-  ];
-
-  let closest = cities[0];
-  let minDist = Infinity;
-  for (const city of cities) {
-    const dist = Math.pow(lat - city.lat, 2) + Math.pow(lng - city.lng, 2);
-    if (dist < minDist) {
-      minDist = dist;
-      closest = city;
-    }
-  }
-  return closest.name;
 }

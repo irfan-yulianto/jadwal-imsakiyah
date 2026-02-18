@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { useStore } from "@/store/useStore";
 import { FileTextIcon, DownloadIcon } from "@/components/ui/Icons";
+import { getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 import PdfDocumentComponent from "./PdfDocument";
 
 const PDFDownloadLink = dynamic(
@@ -23,8 +24,17 @@ const PDFDownloadLink = dynamic(
 );
 
 export default function PdfGenerator() {
-  const { schedule, location, customHeader, setCustomHeader } = useStore();
+  const schedule = useStore((s) => s.schedule);
+  const location = useStore((s) => s.location);
+  const customHeader = useStore((s) => s.customHeader);
+  const setCustomHeader = useStore((s) => s.setCustomHeader);
+  const viewMonth = useStore((s) => s.viewMonth);
+  const viewYear = useStore((s) => s.viewYear);
   const [showForm, setShowForm] = useState(false);
+
+  const hijriMonths = getHijriMonthsForGregorianMonth(viewYear, viewMonth);
+  const hijriSlug = hijriMonths.map((h) => h.monthName).join("-").replace(/['\s]/g, "");
+  const hijriYear = hijriMonths[hijriMonths.length - 1]?.year ?? "";
 
   if (schedule.data.length === 0) return null;
 
@@ -87,7 +97,7 @@ export default function PdfGenerator() {
               customHeader={customHeader}
             />
           }
-          fileName={`Jadwal-Imsakiyah-${location.cityName.replace(/\s+/g, "-")}-Ramadan-1447H.pdf`}
+          fileName={`Jadwal-Imsakiyah-${location.cityName.replace(/\s+/g, "-")}-${hijriSlug}-${hijriYear}H.pdf`}
         >
           {({ loading }) => (
             <button

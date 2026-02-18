@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { ScheduleDay } from "@/types";
-import { getHijriDate } from "@/lib/hijri";
+import { getHijriDate, getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 
 interface MonthlyCardProps {
   scheduleData: ScheduleDay[];
@@ -16,6 +16,19 @@ const PRAYER_COLS = ["Imsak", "Subuh", "Terbit", "Dhuha", "Dzuhur", "Ashar", "Ma
 
 const MonthlyCard = forwardRef<HTMLDivElement, MonthlyCardProps>(
   ({ scheduleData, cityName, province, timezone, mosqueName }, ref) => {
+    const firstDate = scheduleData[0]?.date ?? "";
+    const [gregYearStr, gregMonthStr] = firstDate.split("-");
+    const gregYear = parseInt(gregYearStr, 10);
+    const gregMonth = parseInt(gregMonthStr, 10);
+    const hijriMonths = getHijriMonthsForGregorianMonth(gregYear || 2026, gregMonth || 1);
+    const hijriLabel = hijriMonths
+      .map((h, i) =>
+        i === hijriMonths.length - 1
+          ? `${h.monthName} ${h.year}H`
+          : h.monthName
+      )
+      .join(" – ");
+
     return (
       <div
         ref={ref}
@@ -36,7 +49,7 @@ const MonthlyCard = forwardRef<HTMLDivElement, MonthlyCardProps>(
             JADWAL IMSAKIYAH
           </h1>
           <p className="mt-2 text-[34px] font-bold text-amber-600">
-            RAMADAN 1447H / 2026M
+            {hijriLabel.toUpperCase()} / {gregYear || 2026}M
           </p>
           <p className="mt-3 text-[26px] text-slate-400">
             {cityName}, {province} ({timezone})
@@ -114,7 +127,7 @@ const MonthlyCard = forwardRef<HTMLDivElement, MonthlyCardProps>(
         <div className="mt-8">
           <div className="h-[3px] w-full bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
           <p className="mt-4 text-center text-[20px] text-slate-400">
-            Sumber: Bimas Islam Kemenag RI &bull; Si-Imsak &mdash; Jadwal Imsakiyah Ramadan 1447H
+            Sumber: Bimas Islam Kemenag RI &bull; Si-Imsak &mdash; Jadwal Imsakiyah {hijriLabel}
           </p>
         </div>
       </div>

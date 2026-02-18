@@ -2,7 +2,7 @@
 
 import { forwardRef } from "react";
 import { ScheduleDay, PRAYER_NAMES, PRAYER_KEYS } from "@/types";
-import { getHijriDate } from "@/lib/hijri";
+import { getHijriDate, getHijriParts } from "@/lib/hijri";
 
 interface DailyCardProps {
   schedule: ScheduleDay;
@@ -14,6 +14,8 @@ interface DailyCardProps {
 const DailyCard = forwardRef<HTMLDivElement, DailyCardProps>(
   ({ schedule, cityName, timezone, mosqueName }, ref) => {
     const hijri = getHijriDate(schedule.date);
+    const { monthName: hijriMonthName, year: hijriYear } = getHijriParts(schedule.date);
+    const gregYear = schedule.date.split("-")[0];
     const dayName = schedule.tanggal?.split(",")[0] || "";
     const dateFormatted = new Date(schedule.date).toLocaleDateString("id-ID", {
       day: "numeric",
@@ -51,7 +53,7 @@ const DailyCard = forwardRef<HTMLDivElement, DailyCardProps>(
             Jadwal Imsakiyah
           </h1>
           <p className="mt-3 text-[28px] font-medium text-amber-300">
-            Ramadan 1447H / 2026M
+            {hijriMonthName} {hijriYear}H / {gregYear}M
           </p>
         </div>
 

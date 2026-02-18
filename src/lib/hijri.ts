@@ -1,45 +1,89 @@
-import { RAMADAN_START_DATE } from "./constants";
+const HIJRI_MONTH_NAMES: Record<number, string> = {
+  1: "Muharram",
+  2: "Safar",
+  3: "Rabi'ul Awwal",
+  4: "Rabi'ul Akhir",
+  5: "Jumadil Awwal",
+  6: "Jumadil Akhir",
+  7: "Rajab",
+  8: "Sya'ban",
+  9: "Ramadan",
+  10: "Syawal",
+  11: "Dzulqa'dah",
+  12: "Dzulhijjah",
+};
 
-/**
- * Convert a Gregorian date to Hijri date string during Ramadan 1447H.
- * Based on government decree (Sidang Isbat): 1 Ramadan 1447H = 19 Feb 2026
- */
+const hijriFormatter = new Intl.DateTimeFormat("en-u-ca-islamic-umalqura", {
+  day: "numeric",
+  month: "numeric",
+  year: "numeric",
+});
+
+const hijriCache = new Map<string, { day: number; month: number; year: number }>();
+
+function parseHijri(dateStr: string): { day: number; month: number; year: number } {
+  const cached = hijriCache.get(dateStr);
+  if (cached) return cached;
+
+  try {
+    const date = new Date(`${dateStr}T12:00:00Z`);
+    if (isNaN(date.getTime())) return { day: 0, month: 0, year: 0 };
+    const parts = hijriFormatter.formatToParts(date);
+    const get = (type: string) =>
+      parseInt(parts.find((p) => p.type === type)?.value ?? "0", 10);
+    const result = { day: get("day"), month: get("month"), year: get("year") };
+    hijriCache.set(dateStr, result);
+    return result;
+  } catch {
+    return { day: 0, month: 0, year: 0 };
+  }
+}
+
+export interface HijriParts {
+  day: number;
+  month: number;
+  monthName: string;
+  year: number;
+}
+
+/** Returns structured Hijri date for any Gregorian date (YYYY-MM-DD). */
+export function getHijriParts(dateStr: string): HijriParts {
+  const { day, month, year } = parseHijri(dateStr);
+  return { day, month, monthName: HIJRI_MONTH_NAMES[month] ?? "", year };
+}
+
+/** Returns human-readable Hijri date string, e.g. "1 Ramadan 1447H". */
 export function getHijriDate(dateStr: string): string {
-  const ramadanStart = new Date(RAMADAN_START_DATE);
-  const current = new Date(dateStr);
+  const { day, monthName, year } = getHijriParts(dateStr);
+  return `${day} ${monthName} ${year}H`;
+}
 
-  const diffTime = current.getTime() - ramadanStart.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-  if (diffDays < 0) {
-    // Before Ramadan - approximate Sya'ban
-    const syabanDay = 30 + diffDays + 1; // Sya'ban has ~30 days
-    if (syabanDay > 0) {
-      return `${syabanDay} Sya'ban 1447H`;
-    }
-    return "";
-  }
-
-  if (diffDays < 30) {
-    return `${diffDays + 1} Ramadan 1447H`;
-  }
-
-  // After Ramadan - Syawal
-  const syawalDay = diffDays - 30 + 1;
-  if (syawalDay <= 30) {
-    return `${syawalDay} Syawal 1447H`;
-  }
-
-  return "";
+export interface HijriMonthLabel {
+  monthName: string;
+  year: number;
 }
 
 /**
- * Check if a given date falls within Ramadan 1447H
+ * Returns the Hijri month name(s) within a given Gregorian month.
+ * A Gregorian month can span two Hijri months.
  */
-export function isRamadan(dateStr: string): boolean {
-  const ramadanStart = new Date(RAMADAN_START_DATE);
-  const current = new Date(dateStr);
-  const diffTime = current.getTime() - ramadanStart.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays >= 0 && diffDays < 30;
+export function getHijriMonthsForGregorianMonth(
+  gregYear: number,
+  gregMonth: number
+): HijriMonthLabel[] {
+  const lastDay = new Date(gregYear, gregMonth, 0).getDate();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const firstDateStr = `${gregYear}-${pad(gregMonth)}-01`;
+  const lastDateStr = `${gregYear}-${pad(gregMonth)}-${pad(lastDay)}`;
+
+  const first = parseHijri(firstDateStr);
+  const last = parseHijri(lastDateStr);
+
+  const result: HijriMonthLabel[] = [
+    { monthName: HIJRI_MONTH_NAMES[first.month] ?? "", year: first.year },
+  ];
+  if (last.month !== first.month || last.year !== first.year) {
+    result.push({ monthName: HIJRI_MONTH_NAMES[last.month] ?? "", year: last.year });
+  }
+  return result;
 }

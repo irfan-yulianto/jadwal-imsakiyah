@@ -6,11 +6,21 @@ import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { PRAYER_NAMES, PRAYER_KEYS } from "@/types";
 import { PRAYER_ICON_MAP, CalendarIcon } from "@/components/ui/Icons";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 export default function TodayCard() {
-  const { countdownSchedule, schedule, location, timeOffset } = useStore();
+  const countdownSchedule = useStore((s) => s.countdownSchedule);
+  const schedule = useStore((s) => s.schedule);
+  const location = useStore((s) => s.location);
+  const timeOffset = useStore((s) => s.timeOffset);
   const utcOffset = getUtcOffset(location.timezone);
+
+  // Tick every 60s to keep active prayer highlight current
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { todaySchedule, hijriDate, todayDateStr, currentPrayerIdx } = useMemo(() => {
     const now = getAdjustedTime(timeOffset);
@@ -39,7 +49,8 @@ export default function TodayCard() {
     }
 
     return { todaySchedule: today, hijriDate: hijri, todayDateStr: dateStr, currentPrayerIdx: prayerIdx };
-  }, [countdownSchedule, timeOffset, utcOffset]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [countdownSchedule, timeOffset, utcOffset, tick]);
 
   if (!todaySchedule) {
     return (
@@ -66,7 +77,7 @@ export default function TodayCard() {
       <div className="p-4">
         <p className="mb-3 text-center text-xs text-slate-500 dark:text-slate-400">
           {dayName},{" "}
-          {new Date(todayDateStr).toLocaleDateString("id-ID", {
+          {new Date(todayDateStr + "T12:00:00").toLocaleDateString("id-ID", {
             day: "numeric",
             month: "long",
             year: "numeric",

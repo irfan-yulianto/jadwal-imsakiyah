@@ -1,7 +1,7 @@
 "use client";
 
 import { useStore } from "@/store/useStore";
-import { getHijriDate } from "@/lib/hijri";
+import { getHijriParts, getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { ScheduleDay } from "@/types";
@@ -69,12 +69,9 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
   isToday: boolean;
   todayRef: React.RefObject<HTMLDivElement | null>;
 }) {
-  const hijri = getHijriDate(day.date);
+  const { day: hijriDay, monthName: hijriMonth } = useMemo(() => getHijriParts(day.date), [day.date]);
   const dayName = day.tanggal?.split(",")[0] || "";
   const dateNum = day.date.split("-")[2];
-  const hijriParts = hijri ? hijri.replace(" 1447H", "").split(" ") : [];
-  const hijriDay = hijriParts[0] || "";
-  const hijriMonth = hijriParts.slice(1).join(" ") || "";
 
   return (
     <div
@@ -99,11 +96,9 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
               {dayName}
             </span>
-            {hijriDay && hijriMonth && (
-              <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
-                {hijriDay} {hijriMonth}
-              </span>
-            )}
+            <span className="text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+              {hijriDay} {hijriMonth}
+            </span>
           </div>
         </div>
         {isToday && (
@@ -153,6 +148,15 @@ function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday
   onNext: () => void;
   onToday: () => void;
 }) {
+  const hijriMonths = getHijriMonthsForGregorianMonth(viewYear, viewMonth);
+  const hijriLabel = hijriMonths
+    .map((h, i) =>
+      i === hijriMonths.length - 1
+        ? `${h.monthName} ${h.year}H`
+        : h.monthName
+    )
+    .join(" – ");
+
   return (
     <div className="mb-3 flex items-center justify-between">
       <button
@@ -164,19 +168,24 @@ function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday
         <ChevronLeftIcon size={16} />
       </button>
 
-      <div className="flex items-center gap-2">
-        <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">
-          {MONTH_NAMES[viewMonth - 1]} {viewYear}
-        </h2>
-        {!isCurrentMonth && (
-          <button
-            type="button"
-            onClick={onToday}
-            className="cursor-pointer rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
-          >
-            Hari Ini
-          </button>
-        )}
+      <div className="flex flex-col items-center gap-0.5">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-bold text-slate-700 dark:text-slate-200">
+            {MONTH_NAMES[viewMonth - 1]} {viewYear}
+          </h2>
+          {!isCurrentMonth && (
+            <button
+              type="button"
+              onClick={onToday}
+              className="cursor-pointer rounded-full bg-emerald-100 px-2.5 py-0.5 text-[10px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-400 dark:hover:bg-emerald-900/60"
+            >
+              Hari Ini
+            </button>
+          )}
+        </div>
+        <p className="text-[10px] font-medium text-amber-600 dark:text-amber-400">
+          {hijriLabel}
+        </p>
       </div>
 
       <button
@@ -192,7 +201,12 @@ function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday
 }
 
 export default function ScheduleTable() {
-  const { schedule, location, timeOffset, viewMonth, viewYear, fetchScheduleForMonth } = useStore();
+  const schedule = useStore((s) => s.schedule);
+  const location = useStore((s) => s.location);
+  const timeOffset = useStore((s) => s.timeOffset);
+  const viewMonth = useStore((s) => s.viewMonth);
+  const viewYear = useStore((s) => s.viewYear);
+  const fetchScheduleForMonth = useStore((s) => s.fetchScheduleForMonth);
   const utcOffset = getUtcOffset(location.timezone);
   const todayRef = useRef<HTMLDivElement>(null);
 
@@ -202,8 +216,10 @@ export default function ScheduleTable() {
     return localTime.toISOString().split("T")[0];
   }, [timeOffset, utcOffset]);
 
-  const now = useMemo(() => new Date(), []);
-  const isCurrentMonth = viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
+  const isCurrentMonth = useMemo(() => {
+    const now = new Date();
+    return viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
+  }, [viewMonth, viewYear]);
 
   const goToPrevMonth = useCallback(() => {
     const prev = viewMonth === 1 ? 12 : viewMonth - 1;
@@ -243,6 +259,13 @@ export default function ScheduleTable() {
         />
         <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-center dark:border-red-900/50 dark:bg-red-950/30">
           <p className="text-sm text-red-600 dark:text-red-400">{schedule.error}</p>
+          <button
+            type="button"
+            onClick={() => fetchScheduleForMonth(viewYear, viewMonth)}
+            className="mt-3 cursor-pointer rounded-lg bg-red-100 px-4 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:hover:bg-red-900/60"
+          >
+            Coba Lagi
+          </button>
         </div>
       </div>
     );
@@ -295,12 +318,9 @@ export default function ScheduleTable() {
               ) : (
                 schedule.data.map((day, idx) => {
                   const isToday = day.date === todayDate;
-                  const hijri = getHijriDate(day.date);
+                  const { day: hijriDay } = getHijriParts(day.date);
                   const dayName = day.tanggal?.split(",")[0] || "";
                   const dateNum = day.date.split("-")[2];
-                  const hijriParts = hijri ? hijri.replace(" 1447H", "").split(" ") : [];
-                  const hijriDay = hijriParts[0] || "";
-                  const hijriMonth = hijriParts.slice(1).join(" ") || "";
 
                   return (
                     <tr
@@ -321,13 +341,11 @@ export default function ScheduleTable() {
                           <span className={`text-xs font-medium ${isToday ? "text-green-800 dark:text-emerald-300" : "text-slate-700 dark:text-slate-300"}`}>
                             {dayName.substring(0, 3)}, {dateNum}
                           </span>
-                          {hijriDay && (
-                            <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
-                              isToday ? "bg-green-200 text-green-800 dark:bg-emerald-800/50 dark:text-emerald-300" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-                            }`}>
-                              {hijriDay}
-                            </span>
-                          )}
+                          <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+                            isToday ? "bg-green-200 text-green-800 dark:bg-emerald-800/50 dark:text-emerald-300" : "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          }`}>
+                            {hijriDay}
+                          </span>
                         </div>
                       </td>
                       {TIME_COLUMNS.map((col) => {

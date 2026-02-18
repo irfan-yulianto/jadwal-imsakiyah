@@ -1,23 +1,46 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import LocationSearch from "@/components/location/LocationSearch";
 import { CrescentIcon, SunIcon, MoonIcon } from "@/components/ui/Icons";
 import { useStore } from "@/store/useStore";
+import { getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 
 export default function Header() {
-  const { isOffline, theme, setTheme } = useStore();
+  const isOffline = useStore((s) => s.isOffline);
+  const theme = useStore((s) => s.theme);
+  const setTheme = useStore((s) => s.setTheme);
+  const viewMonth = useStore((s) => s.viewMonth);
+  const viewYear = useStore((s) => s.viewYear);
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (saved) {
-      setTheme(saved);
-    } else {
-      setTheme("dark");
+    try {
+      const saved = localStorage.getItem("theme") as "light" | "dark" | null;
+      if (saved) {
+        setTheme(saved);
+      } else {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        setTheme(prefersDark ? "dark" : "light");
+      }
+    } catch {
+      // localStorage unavailable (Safari private mode)
+      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      setTheme(prefersDark ? "dark" : "light");
     }
   }, [setTheme]);
 
   const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+
+  const hijriSubtitle = useMemo(() => {
+    const hijriMonths = getHijriMonthsForGregorianMonth(viewYear, viewMonth);
+    return hijriMonths
+      .map((h, i) =>
+        i === hijriMonths.length - 1
+          ? `${h.monthName} ${h.year}H`
+          : h.monthName
+      )
+      .join(" – ");
+  }, [viewYear, viewMonth]);
 
   return (
     <header className="fixed top-3 left-4 right-4 z-50 mx-auto max-w-5xl">
@@ -32,7 +55,7 @@ export default function Header() {
               Si-Imsak
             </h1>
             <p className="hidden text-[10px] font-medium tracking-wide text-slate-400 dark:text-slate-500 sm:block">
-              Ramadan 1447H / 2026
+              {hijriSubtitle} / {viewYear}
             </p>
           </div>
         </div>

@@ -18,9 +18,9 @@ const jetbrains = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Si-Imsak — Jadwal Imsakiyah Ramadan 1447H/2026",
+  title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
   description:
-    "Jadwal Imsakiyah dan waktu sholat Ramadan 1447H/2026 untuk seluruh kota di Indonesia. Countdown real-time, generator PDF & gambar untuk masjid Anda.",
+    "Jadwal Imsakiyah dan waktu sholat untuk seluruh kota di Indonesia. Countdown real-time, generator PDF & gambar untuk masjid Anda.",
   keywords: [
     "jadwal imsakiyah",
     "jadwal sholat",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
     "imsakiyah",
   ],
   openGraph: {
-    title: "Si-Imsak — Jadwal Imsakiyah Ramadan 1447H/2026",
+    title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
     description:
       "Jadwal Imsakiyah real-time untuk seluruh kota di Indonesia. Download PDF & gambar untuk masjid Anda.",
     type: "website",
@@ -58,7 +58,7 @@ export default function RootLayout({
           id="theme-init"
           strategy="beforeInteractive"
           dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('theme');if(t!=='light'){document.documentElement.classList.add('dark')}})()`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t===null&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){if(window.matchMedia('(prefers-color-scheme:dark)').matches){document.documentElement.classList.add('dark')}}})()`,
           }}
         />
         {children}

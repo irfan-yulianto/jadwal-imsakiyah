@@ -1,16 +1,12 @@
-// Ramadan 1447H start date based on Sidang Isbat
-export const RAMADAN_START_DATE = "2026-02-19";
-export const RAMADAN_HIJRI_START = { day: 1, month: 9, year: 1447 }; // 1 Ramadan 1447H
-
-// Fallback location (Jakarta Pusat)
+// Fallback location (Jakarta)
 export const DEFAULT_LOCATION = {
-  id: "1301",
+  id: "58a2fc6ed39fd083f55d4182bf88826d",
   lokasi: "KOTA JAKARTA",
   daerah: "DKI JAKARTA",
 };
 
-// API base URL
-export const MYQURAN_API_BASE = "https://api.myquran.com/v2/sholat";
+// API base URL (v3 LTS)
+export const MYQURAN_API_BASE = "https://api.myquran.com/v3/sholat";
 
 // Timezone mapping based on province/region
 export const TIMEZONE_MAP: Record<string, string> = {

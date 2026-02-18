@@ -9,6 +9,7 @@ import {
   Font,
 } from "@react-pdf/renderer";
 import { ScheduleDay, CustomHeader } from "@/types";
+import { getHijriMonthsForGregorianMonth } from "@/lib/hijri";
 
 Font.register({
   family: "Helvetica",
@@ -131,6 +132,19 @@ export default function PdfDocumentComponent({
   timezone,
   customHeader,
 }: PdfDocumentProps) {
+  const firstDate = scheduleData[0]?.date ?? "";
+  const [gregYearStr, gregMonthStr] = firstDate.split("-");
+  const gregYear = parseInt(gregYearStr, 10) || 2026;
+  const gregMonth = parseInt(gregMonthStr, 10) || 1;
+  const hijriMonths = getHijriMonthsForGregorianMonth(gregYear, gregMonth);
+  const hijriLabel = hijriMonths
+    .map((h, i) =>
+      i === hijriMonths.length - 1
+        ? `${h.monthName} ${h.year}H`
+        : h.monthName
+    )
+    .join(" - ");
+
   const headerColumns = [
     { label: "No", style: { ...styles.headerCell, width: "5%" } },
     { label: "Hari", style: { ...styles.headerCell, width: "7%" } },
@@ -163,7 +177,7 @@ export default function PdfDocumentComponent({
 
         {/* Title */}
         <Text style={styles.title}>
-          JADWAL IMSAKIYAH RAMADAN 1447H / 2026M
+          JADWAL IMSAKIYAH {hijriLabel.toUpperCase()} / {gregYear}M
         </Text>
         <Text style={styles.subtitle}>
           {cityName}, {province} ({timezone})
@@ -228,7 +242,7 @@ export default function PdfDocumentComponent({
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Text>Sumber: Bimas Islam Kemenag RI | Si-Imsak - Jadwal Imsakiyah Ramadan 1447H</Text>
+          <Text>Sumber: Bimas Islam Kemenag RI | Si-Imsak - Jadwal Imsakiyah {hijriLabel}</Text>
         </View>
       </Page>
     </Document>

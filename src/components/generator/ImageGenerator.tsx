@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useMemo, useCallback } from "react";
-import { toPng } from "html-to-image";
+// html-to-image is dynamically imported at point of use
 import { useStore } from "@/store/useStore";
 import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
@@ -12,7 +12,10 @@ import MonthlyCard from "./MonthlyCard";
 type Tab = "daily" | "monthly";
 
 export default function ImageGenerator() {
-  const { schedule, location, customHeader, timeOffset } = useStore();
+  const schedule = useStore((s) => s.schedule);
+  const location = useStore((s) => s.location);
+  const customHeader = useStore((s) => s.customHeader);
+  const timeOffset = useStore((s) => s.timeOffset);
   const [activeTab, setActiveTab] = useState<Tab>("daily");
   const [isGenerating, setIsGenerating] = useState(false);
   const dailyRef = useRef<HTMLDivElement>(null);
@@ -33,6 +36,7 @@ export default function ImageGenerator() {
     async (type: Tab): Promise<string | null> => {
       const ref = type === "daily" ? dailyRef : monthlyRef;
       if (!ref.current) return null;
+      const { toPng } = await import("html-to-image");
       return toPng(ref.current, { quality: 1, pixelRatio: 1, cacheBust: true });
     },
     []
