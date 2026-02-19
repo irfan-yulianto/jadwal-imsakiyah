@@ -64,10 +64,6 @@ export default function Home() {
             <div className={`space-y-4 ${activeTab === "generator" ? "block" : "hidden md:block"}`}>
               <PdfGenerator />
               <ImageGenerator />
-              {/* Mosque finder — visible on desktop sidebar */}
-              <div className="hidden md:block">
-                <MosqueFinder />
-              </div>
             </div>
           </div>
         </div>

@@ -84,13 +84,8 @@ export default function TodayCard() {
           })}
         </p>
 
-        {/* Prayer times — horizontal scroll on mobile with fade indicators, grid on desktop */}
-        <div className="relative md:contents">
-          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-6 bg-gradient-to-r from-white dark:from-slate-800/80 md:hidden" />
-          <div className="pointer-events-none absolute right-0 top-0 z-10 flex h-full w-6 items-center bg-gradient-to-l from-white dark:from-slate-800/80 md:hidden">
-            <span className="text-[8px] text-slate-300 dark:text-slate-600">&rsaquo;</span>
-          </div>
-        <div role="region" aria-label="Jadwal sholat hari ini" className="stagger-fade-in scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:gap-2 md:overflow-visible">
+        {/* Prayer times — 4-col grid (2 rows on mobile, 1 row on desktop) */}
+        <div role="region" aria-label="Jadwal sholat hari ini" className="stagger-fade-in grid grid-cols-4 gap-1.5 md:gap-2">
           {PRAYER_KEYS.map((key, idx) => {
             const isActive = idx === currentPrayerIdx;
             const time = todaySchedule[key];
@@ -99,7 +94,7 @@ export default function TodayCard() {
             return (
               <div
                 key={key}
-                className={`flex min-w-[80px] shrink-0 cursor-default flex-col items-center gap-1 rounded-xl px-2.5 py-2.5 transition-all duration-200 md:min-w-0 ${
+                className={`flex cursor-default flex-col items-center gap-1 rounded-xl px-1 py-2.5 transition-all duration-200 md:px-2.5 ${
                   isActive
                     ? "animate-pulse-glow bg-gradient-to-b from-amber-50 to-amber-100/80 ring-2 ring-amber-300/50 dark:from-amber-900/30 dark:to-amber-800/20 dark:ring-amber-500/30"
                     : "bg-slate-50 hover:-translate-y-0.5 hover:bg-slate-100/80 dark:bg-slate-700/50 dark:hover:bg-slate-600/50"
@@ -128,7 +123,6 @@ export default function TodayCard() {
               </div>
             );
           })}
-        </div>
         </div>
       </div>
     </div>
