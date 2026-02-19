@@ -8,7 +8,7 @@ import CountdownTimer from "@/components/schedule/CountdownTimer";
 import TodayCard from "@/components/schedule/TodayCard";
 import ScheduleTable from "@/components/schedule/ScheduleTable";
 import InstallBanner from "@/components/pwa/InstallBanner";
-import { CalendarIcon, DownloadIcon, FileTextIcon } from "@/components/ui/Icons";
+import { CalendarIcon, DownloadIcon } from "@/components/ui/Icons";
 
 const PdfGenerator = dynamic(() => import("@/components/generator/PdfGenerator"), {
   ssr: false,
@@ -89,15 +89,6 @@ export default function Home() {
             <DownloadIcon size={20} />
             <span className="text-[10px] font-semibold">Download</span>
           </button>
-          <a
-            href="https://bimasislam.kemenag.go.id"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 text-slate-400 transition-colors hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400"
-          >
-            <FileTextIcon size={20} />
-            <span className="text-[10px] font-semibold">Sumber</span>
-          </a>
         </div>
       </nav>
 
