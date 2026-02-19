@@ -111,8 +111,9 @@ export default function MosqueFinder() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
-  // Track the coords used for the last fetch, for auto-refetch on significant change
+  // Track the coords AND accuracy used for the last fetch
   const lastFetchCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
+  const lastFetchAccuracyRef = useRef<number | null>(null);
   const watchIdRef = useRef<number | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -214,14 +215,14 @@ export default function MosqueFinder() {
         const posAccuracy = pos.coords.accuracy;
         const newCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
-        // Progressive refinement: always show latest position
+        // Update UI progressively (but don't trigger fetch yet — detecting is true)
         setUserCoords(newCoords);
         setCoords(newCoords);
         setIsGps(true);
         setAccuracy(posAccuracy);
         setGpsError(null);
 
-        // Stop if accuracy is good enough
+        // Stop when accuracy is good enough — settle sets detecting=false, which triggers fetch
         if (posAccuracy <= 100) {
           settle();
         }
@@ -272,6 +273,7 @@ export default function MosqueFinder() {
         setMosques(cached);
         setError(cached.length === 0 ? `Tidak ada masjid ditemukan dalam radius ${radiusLabel}.` : null);
         lastFetchCoordsRef.current = targetCoords;
+        lastFetchAccuracyRef.current = currentAccuracy;
         return;
       }
     }
@@ -291,6 +293,7 @@ export default function MosqueFinder() {
         setMosques(data.data);
         setCache(cacheKey, data.data);
         lastFetchCoordsRef.current = targetCoords;
+        lastFetchAccuracyRef.current = currentAccuracy;
         if (data.data.length === 0) {
           // U6 fix: distinct "no results" message
           setError(`Tidak ada masjid ditemukan dalam radius ${radiusLabel}. Coba perbesar radius atau pindah lokasi.`);
@@ -307,21 +310,29 @@ export default function MosqueFinder() {
     }
   }, [isOffline]);
 
-  // Auto-fetch when coords change, with auto-refetch on significant position change (>200m)
+  // Auto-fetch when coords change, but defer during GPS detection to avoid fetching with inaccurate coords.
+  // Refetch if: position moved >200m OR accuracy improved significantly (halved or crossed tier boundary).
   useEffect(() => {
     if (!coords) return;
 
-    // If we have a previous fetch position, only refetch if moved >200m
+    // While GPS is still detecting, don't fetch yet — wait for settle or good accuracy
+    if (detecting) return;
+
     if (lastFetchCoordsRef.current) {
       const dist = haversineDistance(
         lastFetchCoordsRef.current.lat, lastFetchCoordsRef.current.lng,
         coords.lat, coords.lng
       );
-      if (dist < 200) return;
+      const prevAccuracy = lastFetchAccuracyRef.current;
+      const accuracyImproved = prevAccuracy !== null && accuracy !== null && accuracy < prevAccuracy * 0.5;
+      const radiusChanged = getSearchRadius(accuracy) !== getSearchRadius(prevAccuracy);
+
+      // Skip fetch if position didn't move much AND accuracy didn't improve significantly
+      if (dist < 200 && !accuracyImproved && !radiusChanged) return;
     }
 
     fetchMosques(coords, accuracy);
-  }, [coords, accuracy, fetchMosques]);
+  }, [coords, accuracy, detecting, fetchMosques]);
 
   const googleMapsSearchUrl = coords
     ? `https://www.google.com/maps/search/?api=1&query=masjid&center=${coords.lat},${coords.lng}`
