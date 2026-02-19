@@ -43,7 +43,7 @@ export default function Header() {
 
   return (
     <header className="fixed top-3 left-4 right-4 z-50 mx-auto max-w-5xl">
-      <nav className="flex items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/80 px-4 py-2.5 shadow-lg shadow-black/[0.03] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/80 dark:shadow-black/20">
+      <nav aria-label="Navigasi utama" className="flex items-center justify-between gap-4 rounded-2xl border border-white/60 bg-white/80 px-4 py-2.5 shadow-lg shadow-black/[0.03] backdrop-blur-xl dark:border-slate-700/60 dark:bg-slate-900/80 dark:shadow-black/20">
         {/* Logo */}
         <div className="flex shrink-0 items-center gap-2.5">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-green-700 shadow-md shadow-green-600/25">
@@ -69,8 +69,8 @@ export default function Header() {
           <button
             type="button"
             onClick={toggleTheme}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
-            aria-label="Toggle dark mode"
+            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+            aria-label={theme === "dark" ? "Aktifkan mode terang" : "Aktifkan mode gelap"}
           >
             {theme === "dark" ? <SunIcon size={16} /> : <MoonIcon size={16} />}
           </button>

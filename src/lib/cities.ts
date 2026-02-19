@@ -594,8 +594,14 @@ const CITIES: CityCoord[] = [
 export function getCityGuess(lat: number, lng: number): string | null {
   let closest = CITIES[0];
   let minDist = Infinity;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
   for (const city of CITIES) {
-    const dist = (lat - city.lat) ** 2 + (lng - city.lng) ** 2;
+    const dLat = toRad(lat - city.lat);
+    const dLng = toRad(lng - city.lng);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat)) * Math.cos(toRad(city.lat)) * Math.sin(dLng / 2) ** 2;
+    const dist = Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     if (dist < minDist) {
       minDist = dist;
       closest = city;

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -17,7 +17,14 @@ const jetbrains = JetBrains_Mono({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
+  metadataBase: new URL("https://si-imsak.vercel.app"),
   title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
   description:
     "Jadwal Imsakiyah dan waktu sholat untuk seluruh kota di Indonesia. Countdown real-time, generator PDF & gambar untuk masjid Anda.",
@@ -37,7 +44,17 @@ export const metadata: Metadata = {
     description:
       "Jadwal Imsakiyah real-time untuk seluruh kota di Indonesia. Download PDF & gambar untuk masjid Anda.",
     type: "website",
+    url: "https://si-imsak.vercel.app",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
+    description:
+      "Jadwal Imsakiyah real-time untuk seluruh kota di Indonesia.",
+    images: ["/og-image.png"],
+  },
+  alternates: { canonical: "https://si-imsak.vercel.app" },
   applicationName: "Si-Imsak",
   appleWebApp: {
     capable: true,
@@ -79,7 +96,7 @@ export default function RootLayout({
           id="sw-register"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}`,
+            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}`,
           }}
         />
         {children}

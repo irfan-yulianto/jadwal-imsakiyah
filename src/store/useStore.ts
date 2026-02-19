@@ -50,6 +50,10 @@ interface AppState {
   isOffline: boolean;
   setIsOffline: (offline: boolean) => void;
 
+  // User coordinates (from geolocation)
+  userCoords: { lat: number; lng: number } | null;
+  setUserCoords: (coords: { lat: number; lng: number }) => void;
+
   // Theme
   theme: "light" | "dark";
   setTheme: (theme: "light" | "dark") => void;
@@ -58,6 +62,8 @@ interface AppState {
   refetchSchedule: () => Promise<void>;
   // Fetch schedule for a specific month (used by table month navigation)
   fetchScheduleForMonth: (year: number, month: number) => Promise<void>;
+  // Internal: request ID for race-condition protection in fetchScheduleForMonth
+  _fetchRequestId: number;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -103,6 +109,10 @@ export const useStore = create<AppState>((set, get) => ({
       customHeader: { ...state.customHeader, ...header },
     })),
 
+  // User coordinates
+  userCoords: null,
+  setUserCoords: (coords) => set({ userCoords: coords }),
+
   // Time
   timeOffset: 0,
   setTimeOffset: (offset) => set({ timeOffset: offset }),
@@ -111,8 +121,8 @@ export const useStore = create<AppState>((set, get) => ({
   isOffline: false,
   setIsOffline: (offline) => set({ isOffline: offline }),
 
-  // Theme
-  theme: "dark",
+  // Theme — sync from localStorage to avoid dark→light flash
+  theme: (typeof window !== "undefined" ? (() => { try { return localStorage.getItem("theme") as "light" | "dark"; } catch { return null; } })() : null) ?? "dark",
   setTheme: (theme) => {
     if (typeof window !== "undefined") {
       try { localStorage.setItem("theme", theme); } catch {}
@@ -138,21 +148,21 @@ export const useStore = create<AppState>((set, get) => ({
   // Fetch schedule for a specific month (with request ID to handle rapid navigation)
   _fetchRequestId: 0,
   fetchScheduleForMonth: async (year, month) => {
-    const { location, _fetchRequestId } = get() as AppState & { _fetchRequestId: number };
+    const { location, _fetchRequestId } = get();
     const requestId = _fetchRequestId + 1;
-    set({ _fetchRequestId: requestId } as Partial<AppState>);
+    set({ _fetchRequestId: requestId });
     set((state) => ({ schedule: { ...state.schedule, loading: true, error: null }, viewMonth: month, viewYear: year }));
     try {
       const res = await getSchedule(location.cityId, year, month);
       // Only apply result if this is still the latest request
-      if ((get() as AppState & { _fetchRequestId: number })._fetchRequestId !== requestId) return;
+      if (get()._fetchRequestId !== requestId) return;
       if (res.status && res.data?.jadwal) {
         set({ schedule: { data: res.data.jadwal, loading: false, error: null } });
       } else {
         set((state) => ({ schedule: { ...state.schedule, loading: false, error: "Data tidak tersedia untuk bulan ini" } }));
       }
     } catch {
-      if ((get() as AppState & { _fetchRequestId: number })._fetchRequestId !== requestId) return;
+      if (get()._fetchRequestId !== requestId) return;
       const offlineMsg = typeof navigator !== "undefined" && !navigator.onLine
         ? "Anda sedang offline. Periksa koneksi internet Anda."
         : "Gagal memuat jadwal. Coba lagi nanti.";

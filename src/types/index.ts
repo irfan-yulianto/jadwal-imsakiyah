@@ -30,12 +30,13 @@ export interface ScheduleDay {
 
 export interface ScheduleResponse {
   status: boolean;
-  data: {
+  data?: {
     id: string;
     lokasi: string;
     daerah: string;
     jadwal: ScheduleDay[];
   };
+  error?: string;
 }
 
 export interface CitySearchResponse {

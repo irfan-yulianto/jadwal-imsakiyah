@@ -1,5 +1,5 @@
 import { MYQURAN_API_BASE } from "@/lib/constants";
-import { isRateLimited } from "@/lib/rate-limit";
+import { isRateLimited, extractClientIp } from "@/lib/rate-limit";
 import { NextRequest, NextResponse } from "next/server";
 
 // Get number of days in a month
@@ -13,7 +13,7 @@ function formatDate(year: number, month: number, day: number): string {
 }
 
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const ip = extractClientIp(request.headers.get("x-forwarded-for"));
   if (isRateLimited(ip)) {
     return NextResponse.json(
       { status: false, error: "Too many requests" },
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     );
 
     // Fetch a single day with retry and per-request timeout
-    async function fetchDay(date: string, retries = 2): Promise<unknown> {
+    async function fetchDay(date: string, retries = 2): Promise<UpstreamDayResponse | null> {
       for (let attempt = 0; attempt <= retries; attempt++) {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 5000);
@@ -83,10 +83,22 @@ export async function GET(request: NextRequest) {
       return null;
     }
 
-    // Fetch in batches of 7 to avoid overwhelming upstream API
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const responses: any[] = [];
-    const BATCH_SIZE = 7;
+    interface UpstreamDayResponse {
+      status: boolean;
+      data?: {
+        kabko: string;
+        prov: string;
+        jadwal: Record<string, {
+          tanggal: string; imsak: string; subuh: string;
+          terbit: string; dhuha: string; dzuhur: string;
+          ashar: string; maghrib: string; isya: string;
+        }>;
+      };
+    }
+
+    // Fetch in batches of 15 to reduce serial waits while still being polite
+    const responses: (UpstreamDayResponse | null)[] = [];
+    const BATCH_SIZE = 15;
     for (let i = 0; i < dates.length; i += BATCH_SIZE) {
       const batch = dates.slice(i, i + BATCH_SIZE);
       const batchResults = await Promise.all(batch.map((date) => fetchDay(date)));
@@ -94,7 +106,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Extract city info from first successful response
-    const firstValid = responses.find((r) => r?.status && r?.data);
+    const firstValid = responses.find((r): r is UpstreamDayResponse & { data: NonNullable<UpstreamDayResponse["data"]> } => !!r?.status && !!r?.data);
     if (!firstValid) {
       return NextResponse.json(
         { status: false, error: "Upstream API error" },

@@ -86,9 +86,11 @@ export default function TodayCard() {
 
         {/* Prayer times — horizontal scroll on mobile with fade indicators, grid on desktop */}
         <div className="relative md:contents">
-          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-4 bg-gradient-to-r from-white dark:from-slate-800/80 md:hidden" />
-          <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-4 bg-gradient-to-l from-white dark:from-slate-800/80 md:hidden" />
-        <div className="stagger-fade-in scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:gap-2 md:overflow-visible">
+          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-6 bg-gradient-to-r from-white dark:from-slate-800/80 md:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 z-10 flex h-full w-6 items-center bg-gradient-to-l from-white dark:from-slate-800/80 md:hidden">
+            <span className="text-[8px] text-slate-300 dark:text-slate-600">&rsaquo;</span>
+          </div>
+        <div role="region" aria-label="Jadwal sholat hari ini" className="stagger-fade-in scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:gap-2 md:overflow-visible">
           {PRAYER_KEYS.map((key, idx) => {
             const isActive = idx === currentPrayerIdx;
             const time = todaySchedule[key];
@@ -121,7 +123,7 @@ export default function TodayCard() {
                     isActive ? "text-amber-800 dark:text-amber-300" : "text-slate-700 dark:text-slate-200"
                   }`}
                 >
-                  {time}
+                  {time || "--:--"}
                 </p>
               </div>
             );

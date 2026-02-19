@@ -140,10 +140,12 @@ function ScheduleDayCard({ day, index, isToday, todayRef }: {
   );
 }
 
-function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday }: {
+function MonthNav({ viewMonth, viewYear, isCurrentMonth, canGoPrev, canGoNext, onPrev, onNext, onToday }: {
   viewMonth: number;
   viewYear: number;
   isCurrentMonth: boolean;
+  canGoPrev: boolean;
+  canGoNext: boolean;
   onPrev: () => void;
   onNext: () => void;
   onToday: () => void;
@@ -162,7 +164,8 @@ function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday
       <button
         type="button"
         onClick={onPrev}
-        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+        disabled={!canGoPrev}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
         aria-label="Bulan sebelumnya"
       >
         <ChevronLeftIcon size={16} />
@@ -191,7 +194,8 @@ function MonthNav({ viewMonth, viewYear, isCurrentMonth, onPrev, onNext, onToday
       <button
         type="button"
         onClick={onNext}
-        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
+        disabled={!canGoNext}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-slate-100 text-slate-500 transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-30 dark:bg-slate-800 dark:text-slate-400 dark:hover:bg-slate-700"
         aria-label="Bulan berikutnya"
       >
         <ChevronRightIcon size={16} />
@@ -229,6 +233,9 @@ export default function ScheduleTable() {
     return viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
   }, [viewMonth, viewYear]);
 
+  const canGoPrev = viewYear > 2020 || (viewYear === 2020 && viewMonth > 1);
+  const canGoNext = viewYear < 2030 || (viewYear === 2030 && viewMonth < 12);
+
   const goToPrevMonth = useCallback(() => {
     const prev = viewMonth === 1 ? 12 : viewMonth - 1;
     const prevYear = viewMonth === 1 ? viewYear - 1 : viewYear;
@@ -256,6 +263,8 @@ export default function ScheduleTable() {
           viewMonth={viewMonth}
           viewYear={viewYear}
           isCurrentMonth={isCurrentMonth}
+          canGoPrev={canGoPrev}
+          canGoNext={canGoNext}
           onPrev={goToPrevMonth}
           onNext={goToNextMonth}
           onToday={goToCurrentMonth}
@@ -284,6 +293,8 @@ export default function ScheduleTable() {
         viewMonth={viewMonth}
         viewYear={viewYear}
         isCurrentMonth={isCurrentMonth}
+        canGoPrev={canGoPrev}
+        canGoNext={canGoNext}
         onPrev={goToPrevMonth}
         onNext={goToNextMonth}
         onToday={goToCurrentMonth}
@@ -292,7 +303,7 @@ export default function ScheduleTable() {
       {/* DESKTOP: Table view */}
       <div className="hidden md:block rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm" aria-label={`Jadwal imsakiyah ${MONTH_NAMES[viewMonth - 1]} ${viewYear}`}>
             <thead>
               <tr className="border-b border-slate-100 dark:border-slate-700/50">
                 <th className="sticky top-0 z-10 whitespace-nowrap bg-slate-50 px-3 py-3 text-center text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:bg-slate-800 dark:text-slate-500">
@@ -321,7 +332,7 @@ export default function ScheduleTable() {
               ) : (
                 schedule.data.map((day, idx) => {
                   const isToday = day.date === todayDate;
-                  const { day: hijriDay } = hijriCache[day.date] || getHijriParts(day.date);
+                  const { day: hijriDay } = hijriCache[day.date] ?? { day: "" };
                   const dayName = day.tanggal?.split(",")[0] || "";
                   const dateNum = day.date.split("-")[2];
 

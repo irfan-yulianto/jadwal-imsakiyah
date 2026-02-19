@@ -14,7 +14,11 @@ type BannerMode = "chromium" | "ios" | null;
 
 function detectBannerMode(): BannerMode {
   if (window.matchMedia("(display-mode: standalone)").matches) return null;
-  if (localStorage.getItem(DISMISSED_KEY)) return null;
+  try {
+    if (localStorage.getItem(DISMISSED_KEY)) return null;
+  } catch {
+    return null;
+  }
 
   // iOS Safari detection (no beforeinstallprompt support)
   const ua = navigator.userAgent;
@@ -93,7 +97,7 @@ export default function InstallBanner() {
 
   const handleDismiss = useCallback(() => {
     setMode(null);
-    localStorage.setItem(DISMISSED_KEY, "1");
+    try { localStorage.setItem(DISMISSED_KEY, "1"); } catch {}
   }, []);
 
   if (!mode) return null;

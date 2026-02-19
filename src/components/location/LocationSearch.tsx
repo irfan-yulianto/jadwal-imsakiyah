@@ -27,6 +27,7 @@ export default function LocationSearch() {
   const setViewMonth = useStore((s) => s.setViewMonth);
   const setCountdownSchedule = useStore((s) => s.setCountdownSchedule);
   const setIsOffline = useStore((s) => s.setIsOffline);
+  const setUserCoords = useStore((s) => s.setUserCoords);
 
   // Online/offline detection
   useEffect(() => {
@@ -73,6 +74,7 @@ export default function LocationSearch() {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
+          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           const cityGuess = getCityGuess(pos.coords.latitude, pos.coords.longitude);
           if (cityGuess) {
             const searchRes = await searchCities(cityGuess);
@@ -83,7 +85,7 @@ export default function LocationSearch() {
                   (c: Location) => c.lokasi.toUpperCase().trim() === guessNorm
                 ) ?? searchRes.data[0];
               try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
-              try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
+              try { localStorage.setItem("locationPermissionDismissed", String(Date.now())); } catch {}
               setShowLocationPrompt(false);
               fetchSchedule(city.id, city.daerah || "", city);
             }
@@ -97,7 +99,7 @@ export default function LocationSearch() {
       (error) => {
         setIsDetecting(false);
         setShowLocationPrompt(false);
-        try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
+        try { localStorage.setItem("locationPermissionDismissed", String(Date.now())); } catch {}
         if (error.code === error.PERMISSION_DENIED) {
           setScheduleError("Izin lokasi ditolak. Gunakan pencarian manual di atas.");
         }
@@ -129,10 +131,18 @@ export default function LocationSearch() {
         }
       }
 
-      // No saved location — show permission prompt and load default
+      // No saved location — show permission prompt (re-prompt after 7 days)
       const dismissed = localStorage.getItem("locationPermissionDismissed");
       if (!dismissed) {
         setShowLocationPrompt(true);
+      } else {
+        try {
+          const dismissedAt = Number(dismissed);
+          if (dismissedAt && Date.now() - dismissedAt > 7 * 24 * 3600000) {
+            localStorage.removeItem("locationPermissionDismissed");
+            setShowLocationPrompt(true);
+          }
+        } catch { /* ignore */ }
       }
     } catch {
       // localStorage unavailable (Safari private mode)
@@ -154,11 +164,14 @@ export default function LocationSearch() {
       const currentMonth = new Date().getMonth();
       if (currentMonth !== lastMonth) {
         lastMonth = currentMonth;
-        const savedLocation = localStorage.getItem("selectedLocation");
+        let savedLocation: string | null = null;
+        try { savedLocation = localStorage.getItem("selectedLocation"); } catch {}
         if (savedLocation) {
           try {
             const parsed = JSON.parse(savedLocation);
-            fetchSchedule(parsed.id, parsed.daerah || "", parsed);
+            if (parsed.id && parsed.lokasi) {
+              fetchSchedule(parsed.id, parsed.daerah || "", parsed);
+            }
           } catch {
             // ignore
           }
@@ -222,7 +235,7 @@ export default function LocationSearch() {
 
   const handleDismissPrompt = () => {
     setShowLocationPrompt(false);
-    try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
+    try { localStorage.setItem("locationPermissionDismissed", String(Date.now())); } catch {}
   };
 
   return (

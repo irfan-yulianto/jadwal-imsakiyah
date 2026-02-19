@@ -2,6 +2,28 @@ import { CitySearchResponse, ScheduleResponse } from "@/types";
 
 const API_BASE = "/api";
 const REQUEST_TIMEOUT = 15000; // 15 seconds
+const SCHEDULE_CACHE_MAX_AGE = 7 * 24 * 3600000; // 7 days
+
+function evictOldScheduleCaches() {
+  const now = Date.now();
+  const keysToRemove: string[] = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.startsWith("schedule_")) {
+      try {
+        const val = JSON.parse(localStorage.getItem(key) || "");
+        if (!val._ts || now - val._ts > SCHEDULE_CACHE_MAX_AGE) {
+          keysToRemove.push(key);
+        }
+      } catch {
+        keysToRemove.push(key!);
+      }
+    }
+  }
+  for (const key of keysToRemove) {
+    localStorage.removeItem(key);
+  }
+}
 
 export async function searchCities(keyword: string, signal?: AbortSignal): Promise<CitySearchResponse> {
   const controller = new AbortController();
@@ -42,7 +64,13 @@ export async function getSchedule(
         try {
           localStorage.setItem(cacheKey, JSON.stringify({ _ts: Date.now(), ...data }));
         } catch {
-          // localStorage full or Safari private mode
+          // localStorage full — evict old schedule caches and retry
+          try {
+            evictOldScheduleCaches();
+            localStorage.setItem(cacheKey, JSON.stringify({ _ts: Date.now(), ...data }));
+          } catch {
+            // Still full or Safari private mode — give up
+          }
         }
       }
 

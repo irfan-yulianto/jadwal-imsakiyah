@@ -18,6 +18,7 @@ export default function ImageGenerator() {
   const timeOffset = useStore((s) => s.timeOffset);
   const [activeTab, setActiveTab] = useState<Tab>("daily");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
   const dailyRef = useRef<HTMLDivElement>(null);
   const monthlyRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +46,7 @@ export default function ImageGenerator() {
   const handleDownload = useCallback(
     async (type: Tab) => {
       setIsGenerating(true);
+      setGenerateError(null);
       try {
         const dataUrl = await generateImage(type);
         if (!dataUrl) return;
@@ -55,8 +57,8 @@ export default function ImageGenerator() {
             : `Jadwal-Imsakiyah-${location.cityName}-Sebulan.png`;
         link.href = dataUrl;
         link.click();
-      } catch (err) {
-        console.error("Failed to generate image:", err);
+      } catch {
+        setGenerateError("Gagal membuat gambar. Coba lagi atau gunakan browser lain.");
       } finally {
         setIsGenerating(false);
       }
@@ -160,6 +162,10 @@ export default function ImageGenerator() {
             )}
           </div>
         </div>
+
+        {generateError && (
+          <p className="mb-2 text-center text-[11px] text-red-500 dark:text-red-400">{generateError}</p>
+        )}
 
         {/* Action buttons */}
         <div className="flex gap-2">

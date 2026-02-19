@@ -115,18 +115,22 @@ export default function CountdownTimer() {
   const refetchSchedule = useStore((s) => s.refetchSchedule);
   const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null);
   const [time, setTime] = useState({ hours: "--", minutes: "--", seconds: "--" });
+  const [loadError, setLoadError] = useState(false);
   const lastDateRef = useRef<string>("");
   const refetchingRef = useRef(false);
+  const refetchCountRef = useRef(0);
   const nextPrayerRef = useRef<NextPrayer | null>(null);
 
   useEffect(() => {
-    syncServerTime().then(setTimeOffset);
+    syncServerTime().then(setTimeOffset).catch(() => {});
   }, [setTimeOffset]);
 
   const utcOffset = getUtcOffset(location.timezone);
 
   // Recompute which prayer is next (only when schedule/offset changes or date rolls over)
   useEffect(() => {
+    // Reset stale ref immediately on schedule change (e.g. city switch)
+    nextPrayerRef.current = null;
     if (countdownSchedule.length === 0) return;
 
     function checkAndRefetch() {
@@ -147,14 +151,19 @@ export default function CountdownTimer() {
 
       const next = getNextPrayerCyclic(countdownSchedule, now, utcOffset);
       if (next) {
+        refetchCountRef.current = 0;
+        setLoadError(false);
         nextPrayerRef.current = next;
         setNextPrayer(next);
         setTime(formatCountdown(next.remainingMs));
-      } else if (!refetchingRef.current) {
+      } else if (!refetchingRef.current && refetchCountRef.current < 3) {
         refetchingRef.current = true;
+        refetchCountRef.current += 1;
         refetchSchedule().finally(() => {
           refetchingRef.current = false;
         });
+      } else if (refetchCountRef.current >= 3) {
+        setLoadError(true);
       }
     }
 
@@ -219,7 +228,7 @@ export default function CountdownTimer() {
           <div className="text-center">
             <div className="mb-2 flex items-center justify-center gap-2">
               {PrayerIcon && <PrayerIcon size={18} className="text-amber-300" />}
-              <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-200">
+              <p aria-live="polite" className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-200">
                 {nextPrayer.isTomorrow ? "Menuju Imsak Besok" : `Menuju Waktu ${nextPrayer.name}`}
               </p>
             </div>
@@ -257,11 +266,17 @@ export default function CountdownTimer() {
         ) : (
           <div className="py-3 text-center">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-green-300">
-              Memuat Jadwal...
+              {loadError ? "Jadwal Tidak Tersedia" : "Memuat Jadwal..."}
             </p>
-            <div className="mt-3 flex justify-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-green-300 border-t-transparent" />
-            </div>
+            {loadError ? (
+              <p className="mt-2 text-[10px] text-green-400/70">
+                Coba pilih lokasi atau periksa koneksi internet
+              </p>
+            ) : (
+              <div className="mt-3 flex justify-center">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-green-300 border-t-transparent" />
+              </div>
+            )}
           </div>
         )}
       </div>

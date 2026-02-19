@@ -14,22 +14,34 @@ setInterval(() => {
   }
 }, 300_000);
 
-export function isRateLimited(ip: string): boolean {
+/**
+ * Extract client IP from x-forwarded-for header.
+ * Uses the rightmost non-private IP (closest to server, hardest to spoof).
+ */
+export function extractClientIp(header: string | null): string {
+  if (!header) return "unknown";
+  const ips = header.split(",").map((s) => s.trim()).filter(Boolean);
+  // Rightmost IP is set by the nearest trusted proxy
+  return ips[ips.length - 1] || "unknown";
+}
+
+export function isRateLimited(ip: string, limit: number = maxRequests): boolean {
+  const key = limit === maxRequests ? ip : `${ip}:${limit}`;
   const now = Date.now();
-  const timestamps = requests.get(ip) || [];
+  const timestamps = requests.get(key) || [];
   const valid = timestamps.filter((t) => now - t < windowMs);
 
-  if (valid.length >= maxRequests) {
-    requests.set(ip, valid);
+  if (valid.length >= limit) {
+    requests.set(key, valid);
     return true;
   }
 
   // Prevent memory exhaustion from high-cardinality IPs
-  if (!requests.has(ip) && requests.size >= MAX_IPS) {
-    return false; // Allow but don't track
+  if (!requests.has(key) && requests.size >= MAX_IPS) {
+    return true; // Reject untracked IPs when map is full
   }
 
   valid.push(now);
-  requests.set(ip, valid);
+  requests.set(key, valid);
   return false;
 }
