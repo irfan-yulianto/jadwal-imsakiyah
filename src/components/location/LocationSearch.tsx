@@ -73,7 +73,11 @@ export default function LocationSearch() {
           if (cityGuess) {
             const searchRes = await searchCities(cityGuess);
             if (searchRes.status && searchRes.data?.length > 0) {
-              const city = searchRes.data[0];
+              const guessNorm = cityGuess.toUpperCase().trim();
+              const city =
+                searchRes.data.find(
+                  (c: Location) => c.lokasi.toUpperCase().trim() === guessNorm
+                ) ?? searchRes.data[0];
               try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
               try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
               setShowLocationPrompt(false);
