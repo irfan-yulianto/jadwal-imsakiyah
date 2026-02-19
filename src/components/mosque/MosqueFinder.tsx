@@ -111,9 +111,10 @@ export default function MosqueFinder() {
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
 
-  // Track the coords AND accuracy used for the last fetch
+  // Track the coords, accuracy, and source of the last fetch
   const lastFetchCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
   const lastFetchAccuracyRef = useRef<number | null>(null);
+  const lastFetchWasGpsRef = useRef(false);
   const watchIdRef = useRef<number | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -256,6 +257,7 @@ export default function MosqueFinder() {
     targetCoords: { lat: number; lng: number },
     currentAccuracy: number | null,
     forceRefresh?: boolean,
+    gpsSource?: boolean,
   ) => {
     if (isOffline) {
       setError("Anda sedang offline. Periksa koneksi internet Anda.");
@@ -274,6 +276,7 @@ export default function MosqueFinder() {
         setError(cached.length === 0 ? `Tidak ada masjid ditemukan dalam radius ${radiusLabel}.` : null);
         lastFetchCoordsRef.current = targetCoords;
         lastFetchAccuracyRef.current = currentAccuracy;
+        lastFetchWasGpsRef.current = !!gpsSource;
         return;
       }
     }
@@ -294,6 +297,7 @@ export default function MosqueFinder() {
         setCache(cacheKey, data.data);
         lastFetchCoordsRef.current = targetCoords;
         lastFetchAccuracyRef.current = currentAccuracy;
+        lastFetchWasGpsRef.current = !!gpsSource;
         if (data.data.length === 0) {
           // U6 fix: distinct "no results" message
           setError(`Tidak ada masjid ditemukan dalam radius ${radiusLabel}. Coba perbesar radius atau pindah lokasi.`);
@@ -311,14 +315,17 @@ export default function MosqueFinder() {
   }, [isOffline]);
 
   // Auto-fetch when coords change, but defer during GPS detection to avoid fetching with inaccurate coords.
-  // Refetch if: position moved >200m OR accuracy improved significantly (halved or crossed tier boundary).
+  // Refetch if: position moved >200m OR accuracy improved significantly OR switching from city→GPS.
   useEffect(() => {
     if (!coords) return;
 
     // While GPS is still detecting, don't fetch yet — wait for settle or good accuracy
     if (detecting) return;
 
-    if (lastFetchCoordsRef.current) {
+    // Force refetch when transitioning from city fallback to GPS (bypass distance/cache checks)
+    const switchingToGps = isGps && !lastFetchWasGpsRef.current && lastFetchCoordsRef.current !== null;
+
+    if (lastFetchCoordsRef.current && !switchingToGps) {
       const dist = haversineDistance(
         lastFetchCoordsRef.current.lat, lastFetchCoordsRef.current.lng,
         coords.lat, coords.lng
@@ -331,8 +338,8 @@ export default function MosqueFinder() {
       if (dist < 200 && !accuracyImproved && !radiusChanged) return;
     }
 
-    fetchMosques(coords, accuracy);
-  }, [coords, accuracy, detecting, fetchMosques]);
+    fetchMosques(coords, accuracy, switchingToGps, isGps);
+  }, [coords, accuracy, detecting, isGps, fetchMosques]);
 
   const googleMapsSearchUrl = coords
     ? `https://www.google.com/maps/search/?api=1&query=masjid&center=${coords.lat},${coords.lng}`
@@ -354,7 +361,7 @@ export default function MosqueFinder() {
           {coords && !loading && (
             <button
               type="button"
-              onClick={() => fetchMosques(coords, accuracy, true)}
+              onClick={() => fetchMosques(coords, accuracy, true, isGps)}
               className="cursor-pointer rounded-lg px-2.5 py-1 text-[10px] font-semibold text-emerald-600 transition-colors hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-900/30"
             >
               Refresh
@@ -476,7 +483,7 @@ export default function MosqueFinder() {
           {coords && (
             <button
               type="button"
-              onClick={() => fetchMosques(coords, accuracy, true)}
+              onClick={() => fetchMosques(coords, accuracy, true, isGps)}
               className="mt-3 cursor-pointer rounded-lg bg-emerald-50 px-4 py-1.5 text-[11px] font-semibold text-emerald-700 transition-colors hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
             >
               Coba Lagi
