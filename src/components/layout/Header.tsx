@@ -19,13 +19,12 @@ export default function Header() {
       if (saved) {
         setTheme(saved);
       } else {
-        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-        setTheme(prefersDark ? "dark" : "light");
+        // Default dark — matches layout.tsx inline script
+        setTheme("dark");
       }
     } catch {
-      // localStorage unavailable (Safari private mode)
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      setTheme(prefersDark ? "dark" : "light");
+      // localStorage unavailable (Safari private mode) — default dark
+      setTheme("dark");
     }
   }, [setTheme]);
 

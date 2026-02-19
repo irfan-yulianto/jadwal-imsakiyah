@@ -84,7 +84,10 @@ export default function TodayCard() {
           })}
         </p>
 
-        {/* Prayer times — horizontal scroll on mobile, grid on desktop */}
+        {/* Prayer times — horizontal scroll on mobile with fade indicators, grid on desktop */}
+        <div className="relative md:contents">
+          <div className="pointer-events-none absolute left-0 top-0 z-10 h-full w-4 bg-gradient-to-r from-white dark:from-slate-800/80 md:hidden" />
+          <div className="pointer-events-none absolute right-0 top-0 z-10 h-full w-4 bg-gradient-to-l from-white dark:from-slate-800/80 md:hidden" />
         <div className="stagger-fade-in scrollbar-hide -mx-1 flex gap-1.5 overflow-x-auto pb-1 md:grid md:grid-cols-4 md:gap-2 md:overflow-visible">
           {PRAYER_KEYS.map((key, idx) => {
             const isActive = idx === currentPrayerIdx;
@@ -123,6 +126,7 @@ export default function TodayCard() {
               </div>
             );
           })}
+        </div>
         </div>
       </div>
     </div>

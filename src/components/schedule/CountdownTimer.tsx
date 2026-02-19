@@ -117,6 +117,7 @@ export default function CountdownTimer() {
   const [time, setTime] = useState({ hours: "--", minutes: "--", seconds: "--" });
   const lastDateRef = useRef<string>("");
   const refetchingRef = useRef(false);
+  const nextPrayerRef = useRef<NextPrayer | null>(null);
 
   useEffect(() => {
     syncServerTime().then(setTimeOffset);
@@ -124,46 +125,74 @@ export default function CountdownTimer() {
 
   const utcOffset = getUtcOffset(location.timezone);
 
-  const computeNextPrayer = useCallback(() => {
+  // Recompute which prayer is next (only when schedule/offset changes or date rolls over)
+  useEffect(() => {
     if (countdownSchedule.length === 0) return;
-    const now = getAdjustedTime(timeOffset);
-    const localTime = getLocalDate(now, utcOffset);
-    const currentDateStr = getDateStr(localTime);
 
-    // Auto-refresh: detect date change and refetch if needed
-    if (lastDateRef.current && lastDateRef.current !== currentDateStr && !refetchingRef.current) {
-      const tomorrowSchedule = getTomorrowSchedule(countdownSchedule, now, utcOffset);
-      if (!tomorrowSchedule) {
+    function checkAndRefetch() {
+      const now = getAdjustedTime(timeOffset);
+      const localTime = getLocalDate(now, utcOffset);
+      const currentDateStr = getDateStr(localTime);
+
+      if (lastDateRef.current && lastDateRef.current !== currentDateStr && !refetchingRef.current) {
+        const tomorrowSchedule = getTomorrowSchedule(countdownSchedule, now, utcOffset);
+        if (!tomorrowSchedule) {
+          refetchingRef.current = true;
+          refetchSchedule().finally(() => {
+            refetchingRef.current = false;
+          });
+        }
+      }
+      lastDateRef.current = currentDateStr;
+
+      const next = getNextPrayerCyclic(countdownSchedule, now, utcOffset);
+      if (next) {
+        nextPrayerRef.current = next;
+        setNextPrayer(next);
+        setTime(formatCountdown(next.remainingMs));
+      } else if (!refetchingRef.current) {
         refetchingRef.current = true;
         refetchSchedule().finally(() => {
           refetchingRef.current = false;
         });
       }
     }
-    lastDateRef.current = currentDateStr;
 
-    const next = getNextPrayerCyclic(countdownSchedule, now, utcOffset);
-    if (next) {
-      setNextPrayer(next);
-      setTime(formatCountdown(next.remainingMs));
-    } else {
-      // No data available (end of month boundary) → trigger refetch
-      if (!refetchingRef.current) {
-        refetchingRef.current = true;
-        refetchSchedule().finally(() => {
-          refetchingRef.current = false;
-        });
-      }
-      setNextPrayer(null);
-      setTime({ hours: "--", minutes: "--", seconds: "--" });
-    }
+    checkAndRefetch();
+    // Re-check every 30s for prayer transitions and date changes
+    const interval = setInterval(checkAndRefetch, 30000);
+    return () => clearInterval(interval);
   }, [countdownSchedule, timeOffset, utcOffset, refetchSchedule]);
 
+  // Fast countdown tick — only updates display, no state recalculation
   useEffect(() => {
-    computeNextPrayer();
-    const interval = setInterval(computeNextPrayer, 1000);
+    const interval = setInterval(() => {
+      const ref = nextPrayerRef.current;
+      if (!ref) return;
+      const now = getAdjustedTime(timeOffset);
+      const localTime = getLocalDate(now, utcOffset);
+      const localHours = localTime.getUTCHours();
+      const localMinutes = localTime.getUTCMinutes();
+      const localSeconds = localTime.getUTCSeconds();
+      const currentTotalSeconds = localHours * 3600 + localMinutes * 60 + localSeconds;
+      const prayerTotalSeconds = parseTimeToSeconds(ref.time);
+
+      let remainingMs: number;
+      if (ref.isTomorrow) {
+        const secondsLeftToday = 86400 - currentTotalSeconds;
+        remainingMs = (secondsLeftToday + prayerTotalSeconds) * 1000;
+      } else {
+        remainingMs = (prayerTotalSeconds - currentTotalSeconds) * 1000;
+      }
+
+      if (remainingMs <= 0) {
+        // Prayer time reached — force recomputation on next 30s tick
+        return;
+      }
+      setTime(formatCountdown(remainingMs));
+    }, 1000);
     return () => clearInterval(interval);
-  }, [computeNextPrayer]);
+  }, [timeOffset, utcOffset]);
 
   const PrayerIcon = nextPrayer ? PRAYER_ICON_MAP[nextPrayer.key] : null;
 

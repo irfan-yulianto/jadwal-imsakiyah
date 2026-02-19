@@ -216,6 +216,14 @@ export default function ScheduleTable() {
     return localTime.toISOString().split("T")[0];
   }, [timeOffset, utcOffset]);
 
+  const hijriCache = useMemo(() => {
+    const cache: Record<string, ReturnType<typeof getHijriParts>> = {};
+    for (const day of schedule.data) {
+      cache[day.date] = getHijriParts(day.date);
+    }
+    return cache;
+  }, [schedule.data]);
+
   const isCurrentMonth = useMemo(() => {
     const now = new Date();
     return viewMonth === now.getMonth() + 1 && viewYear === now.getFullYear();
@@ -313,7 +321,7 @@ export default function ScheduleTable() {
               ) : (
                 schedule.data.map((day, idx) => {
                   const isToday = day.date === todayDate;
-                  const { day: hijriDay } = getHijriParts(day.date);
+                  const { day: hijriDay } = hijriCache[day.date] || getHijriParts(day.date);
                   const dayName = day.tanggal?.split(",")[0] || "";
                   const dateNum = day.date.split("-")[2];
 

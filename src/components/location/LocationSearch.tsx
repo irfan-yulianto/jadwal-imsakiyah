@@ -57,7 +57,11 @@ export default function LocationSearch() {
           setScheduleError("Data jadwal tidak tersedia");
         }
       } catch {
-        setScheduleError("Gagal memuat jadwal. Periksa koneksi internet.");
+        setScheduleError(
+          navigator.onLine
+            ? "Gagal memuat jadwal. Coba lagi nanti."
+            : "Anda sedang offline. Periksa koneksi internet Anda."
+        );
       }
     },
     [setLocation, setSchedule, setScheduleLoading, setScheduleError, setViewMonth, setCountdownSchedule]
@@ -90,8 +94,13 @@ export default function LocationSearch() {
           setIsDetecting(false);
         }
       },
-      () => {
+      (error) => {
         setIsDetecting(false);
+        setShowLocationPrompt(false);
+        try { localStorage.setItem("locationPermissionDismissed", "true"); } catch {}
+        if (error.code === error.PERMISSION_DENIED) {
+          setScheduleError("Izin lokasi ditolak. Gunakan pencarian manual di atas.");
+        }
       },
       { timeout: 5000 }
     );
@@ -103,8 +112,12 @@ export default function LocationSearch() {
       if (savedLocation) {
         try {
           const parsed = JSON.parse(savedLocation);
-          // Backward compat: detect old v2 numeric IDs and clear them
-          if (/^\d+$/.test(parsed.id)) {
+          // Validate saved data has required fields
+          if (!parsed.id || !parsed.lokasi) {
+            localStorage.removeItem("selectedLocation");
+            // Fall through to default location below
+          } else if (/^\d+$/.test(parsed.id)) {
+            // Backward compat: detect old v2 numeric IDs and clear them
             localStorage.removeItem("selectedLocation");
             // Fall through to default location below
           } else {

@@ -1,11 +1,18 @@
 /**
  * Sync time with worldtimeapi.org to avoid relying on user's device clock.
  * Returns the offset in milliseconds (serverTime - clientTime).
+ * Note: the timezone parameter (Asia/Jakarta) doesn't affect the offset —
+ * the API returns an ISO 8601 datetime parsed to an absolute UTC timestamp,
+ * so the drift calculation is timezone-independent.
  */
 export async function syncServerTime(): Promise<number> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5000);
   try {
     const before = Date.now();
-    const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Jakarta");
+    const res = await fetch("https://worldtimeapi.org/api/timezone/Asia/Jakarta", {
+      signal: controller.signal,
+    });
     const after = Date.now();
 
     if (!res.ok) return 0;
@@ -19,8 +26,10 @@ export async function syncServerTime(): Promise<number> {
 
     return adjustedServerTime - after;
   } catch {
-    // If worldtimeapi is down, use client time (offset = 0)
+    // If worldtimeapi is down or timed out, use client time (offset = 0)
     return 0;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

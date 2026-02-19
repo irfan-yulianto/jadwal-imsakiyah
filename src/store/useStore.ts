@@ -135,24 +135,28 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  // Fetch schedule for a specific month
+  // Fetch schedule for a specific month (with request ID to handle rapid navigation)
+  _fetchRequestId: 0,
   fetchScheduleForMonth: async (year, month) => {
-    const { location } = get();
+    const { location, _fetchRequestId } = get() as AppState & { _fetchRequestId: number };
+    const requestId = _fetchRequestId + 1;
+    set({ _fetchRequestId: requestId } as Partial<AppState>);
     set((state) => ({ schedule: { ...state.schedule, loading: true, error: null }, viewMonth: month, viewYear: year }));
     try {
       const res = await getSchedule(location.cityId, year, month);
-      // Only apply result if user hasn't navigated away during fetch
-      const { viewMonth, viewYear } = get();
-      if (viewMonth !== month || viewYear !== year) return;
+      // Only apply result if this is still the latest request
+      if ((get() as AppState & { _fetchRequestId: number })._fetchRequestId !== requestId) return;
       if (res.status && res.data?.jadwal) {
         set({ schedule: { data: res.data.jadwal, loading: false, error: null } });
       } else {
         set((state) => ({ schedule: { ...state.schedule, loading: false, error: "Data tidak tersedia untuk bulan ini" } }));
       }
     } catch {
-      const { viewMonth, viewYear } = get();
-      if (viewMonth !== month || viewYear !== year) return;
-      set((state) => ({ schedule: { ...state.schedule, loading: false, error: "Gagal memuat jadwal" } }));
+      if ((get() as AppState & { _fetchRequestId: number })._fetchRequestId !== requestId) return;
+      const offlineMsg = typeof navigator !== "undefined" && !navigator.onLine
+        ? "Anda sedang offline. Periksa koneksi internet Anda."
+        : "Gagal memuat jadwal. Coba lagi nanti.";
+      set((state) => ({ schedule: { ...state.schedule, loading: false, error: offlineMsg } }));
     }
   },
 }));

@@ -62,16 +62,21 @@ export async function GET(request: NextRequest) {
       formatDate(yearNum, monthNum, i + 1)
     );
 
-    // Fetch a single day with retry
+    // Fetch a single day with retry and per-request timeout
     async function fetchDay(date: string, retries = 2): Promise<unknown> {
       for (let attempt = 0; attempt <= retries; attempt++) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 5000);
         try {
           const res = await fetch(`${MYQURAN_API_BASE}/jadwal/${cityId}/${date}`, {
             next: { revalidate: 86400 },
+            signal: controller.signal,
           });
           if (res.ok) return res.json();
         } catch {
-          // retry
+          // retry on timeout or network error
+        } finally {
+          clearTimeout(timeout);
         }
         if (attempt < retries) await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
       }

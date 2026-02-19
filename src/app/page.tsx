@@ -65,10 +65,11 @@ export default function Home() {
       <Footer />
 
       {/* Mobile bottom navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden dark:border-slate-800 dark:bg-slate-900/90">
+      <nav aria-label="Menu utama" className="fixed bottom-0 left-0 right-0 z-50 border-t border-slate-100 bg-white/90 backdrop-blur-xl md:hidden dark:border-slate-800 dark:bg-slate-900/90">
         <div className="mx-auto flex max-w-md">
           <button
             type="button"
+            aria-current={activeTab === "jadwal" ? "page" : undefined}
             onClick={() => setActiveTab("jadwal")}
             className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
               activeTab === "jadwal" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
@@ -79,6 +80,7 @@ export default function Home() {
           </button>
           <button
             type="button"
+            aria-current={activeTab === "generator" ? "page" : undefined}
             onClick={() => setActiveTab("generator")}
             className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors ${
               activeTab === "generator" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
