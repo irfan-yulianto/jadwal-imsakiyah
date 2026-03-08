@@ -4,29 +4,14 @@ import { searchCities, getSchedule } from "./api";
 import { getTimezone } from "./timezone";
 import { Location } from "@/types";
 
-interface GeocodeResult {
-  kecamatan: string;
-  city: string;
-}
-
-async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
-  try {
-    const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
-    if (!res.ok) return { kecamatan: "", city: "" };
-    return await res.json();
-  } catch {
-    return { kecamatan: "", city: "" };
-  }
-}
-
 export interface DetectionResult {
   success: boolean;
   error?: string;
 }
 
 /**
- * Detect GPS location, reverse geocode for kecamatan, find nearest city,
- * and update schedule. Uses Zustand store directly (works outside React).
+ * Detect GPS location, find nearest city, and update schedule.
+ * Uses Zustand store directly (works outside React).
  */
 export function detectAndUpdateLocation(): Promise<DetectionResult> {
   return new Promise((resolve) => {
@@ -41,9 +26,6 @@ export function detectAndUpdateLocation(): Promise<DetectionResult> {
         const store = useStore.getState();
 
         store.setUserCoords({ lat: latitude, lng: longitude });
-
-        // Reverse geocode (parallel with city lookup)
-        const geocodePromise = reverseGeocode(latitude, longitude);
 
         // Find nearest city from local database
         const cityGuess = getCityGuess(latitude, longitude);
@@ -65,16 +47,10 @@ export function detectAndUpdateLocation(): Promise<DetectionResult> {
               (c) => c.lokasi.toUpperCase().trim() === guessNorm
             ) ?? searchRes.data[0];
 
-          // Wait for geocode result
-          const { kecamatan } = await geocodePromise;
-
           // Save to localStorage
           try {
             localStorage.setItem("selectedLocation", JSON.stringify(city));
             localStorage.setItem("locationPermissionDismissed", String(Date.now()));
-            if (kecamatan) {
-              localStorage.setItem("detectedKecamatan", kecamatan);
-            }
           } catch {}
 
           // Fetch prayer schedule
@@ -86,8 +62,7 @@ export function detectAndUpdateLocation(): Promise<DetectionResult> {
             const tz = getTimezone(res.data.daerah || city.daerah || "");
             store.setLocation(
               { ...city, daerah: res.data.daerah || city.daerah },
-              tz,
-              kecamatan
+              tz
             );
             store.setSchedule(res.data.jadwal);
             store.setCountdownSchedule(res.data.jadwal);

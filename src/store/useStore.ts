@@ -14,7 +14,6 @@ function getInitialLocationFromCache(): {
   cityName: string;
   province: string;
   timezone: TimezoneLabel;
-  kecamatan: string;
 } | null {
   if (typeof window === "undefined") return null;
   try {
@@ -23,13 +22,11 @@ function getInitialLocationFromCache(): {
     const loc: Location & { daerah?: string } = JSON.parse(raw);
     if (!loc.id || !loc.lokasi) return null;
     const tz = getTimezone(loc.daerah || "");
-    const kecamatan = localStorage.getItem("detectedKecamatan") || "";
     return {
       cityId: loc.id,
       cityName: loc.lokasi,
       province: loc.daerah || "",
       timezone: tz,
-      kecamatan,
     };
   } catch {
     return null;
@@ -58,7 +55,6 @@ interface LocationState {
   cityName: string;
   province: string;
   timezone: TimezoneLabel;
-  kecamatan: string;
 }
 
 interface ScheduleState {
@@ -70,7 +66,7 @@ interface ScheduleState {
 interface AppState {
   // Location
   location: LocationState;
-  setLocation: (loc: Location & { daerah?: string }, tz: TimezoneLabel, kecamatan?: string) => void;
+  setLocation: (loc: Location & { daerah?: string }, tz: TimezoneLabel) => void;
 
   // Schedule (table view — user-navigated month)
   schedule: ScheduleState;
@@ -123,16 +119,14 @@ export const useStore = create<AppState>((set, get) => ({
     cityName: DEFAULT_LOCATION.lokasi,
     province: DEFAULT_LOCATION.daerah,
     timezone: "WIB",
-    kecamatan: "",
   },
-  setLocation: (loc, tz, kecamatan?) =>
+  setLocation: (loc, tz) =>
     set({
       location: {
         cityId: loc.id,
         cityName: loc.lokasi,
         province: loc.daerah || "",
         timezone: tz,
-        kecamatan: kecamatan || "",
       },
     }),
 

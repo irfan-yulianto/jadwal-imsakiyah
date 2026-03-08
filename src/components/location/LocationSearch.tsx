@@ -204,7 +204,7 @@ export default function LocationSearch() {
     setIsOpen(false);
     try {
       localStorage.setItem("selectedLocation", JSON.stringify(city));
-      localStorage.removeItem("detectedKecamatan");
+      localStorage.removeItem("detectedKecamatan"); // clean up legacy key
     } catch {}
     fetchSchedule(city.id, city.daerah || "", city);
   };

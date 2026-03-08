@@ -133,24 +133,6 @@ export default function CountdownTimer() {
 
   const utcOffset = getUtcOffset(location.timezone);
 
-  // Load saved kecamatan on mount
-  useEffect(() => {
-    if (!location.kecamatan) {
-      try {
-        const saved = localStorage.getItem("detectedKecamatan");
-        if (saved) {
-          const store = useStore.getState();
-          store.setLocation(
-            { id: location.cityId, lokasi: location.cityName, daerah: location.province },
-            location.timezone,
-            saved
-          );
-        }
-      } catch {}
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleRefreshLocation = useCallback(async () => {
     if (isRefreshing) return;
     setIsRefreshing(true);
@@ -273,18 +255,14 @@ export default function CountdownTimer() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className="truncate text-xs font-semibold text-green-100">
-                {location.kecamatan
-                  ? `Kec. ${location.kecamatan}`
-                  : location.cityName}
+                {location.cityName}
               </p>
               <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold leading-none text-green-300">
                 {location.timezone}
               </span>
             </div>
             <p className="mt-0.5 truncate text-[10px] text-green-400">
-              {location.kecamatan
-                ? `${location.cityName}${location.province ? `, ${location.province}` : ""}`
-                : location.province}
+              {location.province}
             </p>
           </div>
           <div className="flex shrink-0 items-center">
