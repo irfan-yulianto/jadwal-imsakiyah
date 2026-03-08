@@ -6,7 +6,7 @@ import { getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { PRAYER_NAMES, PRAYER_KEYS } from "@/types";
 import { PRAYER_ICON_MAP, CalendarIcon } from "@/components/ui/Icons";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 
 export default function TodayCard() {
   const countdownSchedule = useStore((s) => s.countdownSchedule);
@@ -15,46 +15,52 @@ export default function TodayCard() {
   const timeOffset = useStore((s) => s.timeOffset);
   const utcOffset = getUtcOffset(location.timezone);
 
-  // Tick every 60s to keep active prayer highlight current
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const { todaySchedule, hijriDate, todayDateStr, currentPrayerIdx } = useMemo(() => {
+  const { todaySchedule, hijriDate, todayDateStr } = useMemo(() => {
     const now = getAdjustedTime(timeOffset);
     const localTime = new Date(now.getTime() + utcOffset * 3600000);
     const dateStr = localTime.toISOString().split("T")[0];
-
     const today = countdownSchedule.find((s) => s.date === dateStr);
     const hijri = getHijriDate(dateStr);
+    return { todaySchedule: today, hijriDate: hijri, todayDateStr: dateStr };
+  }, [countdownSchedule, timeOffset, utcOffset]);
 
-    let prayerIdx = -1;
-    if (today) {
-      const localHours = localTime.getUTCHours();
-      const localMinutes = localTime.getUTCMinutes();
-      const currentMinutes = localHours * 60 + localMinutes;
+  // Active prayer highlight — only re-renders when prayer actually transitions
+  const [currentPrayerIdx, setCurrentPrayerIdx] = useState(-1);
+  const lastPrayerIdxRef = useRef(-1);
 
+  useEffect(() => {
+    function computeIdx() {
+      if (!todaySchedule) return;
+      const now = getAdjustedTime(timeOffset);
+      const localTime = new Date(now.getTime() + utcOffset * 3600000);
+      const currentMinutes = localTime.getUTCHours() * 60 + localTime.getUTCMinutes();
+
+      let newIdx = -1;
       for (let i = PRAYER_KEYS.length - 1; i >= 0; i--) {
-        const timeStr = today[PRAYER_KEYS[i]];
-        if (timeStr) {
+        const timeStr = todaySchedule[PRAYER_KEYS[i]];
+        if (timeStr && timeStr.includes(":")) {
           const [h, m] = timeStr.split(":").map(Number);
-          if (currentMinutes >= h * 60 + m) {
-            prayerIdx = i;
+          if (!isNaN(h) && !isNaN(m) && currentMinutes >= h * 60 + m) {
+            newIdx = i;
             break;
           }
         }
       }
+
+      if (newIdx !== lastPrayerIdxRef.current) {
+        lastPrayerIdxRef.current = newIdx;
+        setCurrentPrayerIdx(newIdx);
+      }
     }
 
-    return { todaySchedule: today, hijriDate: hijri, todayDateStr: dateStr, currentPrayerIdx: prayerIdx };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [countdownSchedule, timeOffset, utcOffset, tick]);
+    computeIdx();
+    const interval = setInterval(computeIdx, 60000);
+    return () => clearInterval(interval);
+  }, [todaySchedule, timeOffset, utcOffset]);
 
   if (!todaySchedule) {
     return (
-      <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
+      <div className="min-h-[160px] rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
         <p className="text-center text-sm text-slate-400 dark:text-slate-500">
           {schedule.loading ? "Memuat jadwal..." : "Jadwal hari ini belum tersedia"}
         </p>
@@ -65,7 +71,7 @@ export default function TodayCard() {
   const dayName = todaySchedule.tanggal?.split(",")[0] || "";
 
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
+    <div className="min-h-[160px] rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-700/50 dark:bg-slate-800/80">
       {/* Hijri date banner */}
       {hijriDate && (
         <div className="flex items-center justify-center gap-2 rounded-t-2xl bg-gradient-to-r from-amber-50 to-amber-100/50 px-4 py-2 dark:from-amber-950/30 dark:to-amber-900/20">

@@ -1,0 +1,122 @@
+import { useStore } from "@/store/useStore";
+import { getCityGuess } from "./cities";
+import { searchCities, getSchedule } from "./api";
+import { getTimezone } from "./timezone";
+import { Location } from "@/types";
+
+interface GeocodeResult {
+  kecamatan: string;
+  city: string;
+}
+
+async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
+  try {
+    const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+    if (!res.ok) return { kecamatan: "", city: "" };
+    return await res.json();
+  } catch {
+    return { kecamatan: "", city: "" };
+  }
+}
+
+export interface DetectionResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Detect GPS location, reverse geocode for kecamatan, find nearest city,
+ * and update schedule. Uses Zustand store directly (works outside React).
+ */
+export function detectAndUpdateLocation(): Promise<DetectionResult> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve({ success: false, error: "Geolocation tidak tersedia" });
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const store = useStore.getState();
+
+        store.setUserCoords({ lat: latitude, lng: longitude });
+
+        // Reverse geocode (parallel with city lookup)
+        const geocodePromise = reverseGeocode(latitude, longitude);
+
+        // Find nearest city from local database
+        const cityGuess = getCityGuess(latitude, longitude);
+        if (!cityGuess) {
+          resolve({ success: false, error: "Tidak dapat mendeteksi kota" });
+          return;
+        }
+
+        try {
+          const searchRes = await searchCities(cityGuess);
+          if (!searchRes.status || !searchRes.data?.length) {
+            resolve({ success: false, error: "Kota tidak ditemukan dalam database" });
+            return;
+          }
+
+          const guessNorm = cityGuess.toUpperCase().trim();
+          const city: Location =
+            searchRes.data.find(
+              (c) => c.lokasi.toUpperCase().trim() === guessNorm
+            ) ?? searchRes.data[0];
+
+          // Wait for geocode result
+          const { kecamatan } = await geocodePromise;
+
+          // Save to localStorage
+          try {
+            localStorage.setItem("selectedLocation", JSON.stringify(city));
+            localStorage.setItem("locationPermissionDismissed", String(Date.now()));
+            if (kecamatan) {
+              localStorage.setItem("detectedKecamatan", kecamatan);
+            }
+          } catch {}
+
+          // Fetch prayer schedule
+          const now = new Date();
+          store.setScheduleLoading(true);
+
+          const res = await getSchedule(city.id, now.getFullYear(), now.getMonth() + 1);
+          if (res.status && res.data?.jadwal) {
+            const tz = getTimezone(res.data.daerah || city.daerah || "");
+            store.setLocation(
+              { ...city, daerah: res.data.daerah || city.daerah },
+              tz,
+              kecamatan
+            );
+            store.setSchedule(res.data.jadwal);
+            store.setCountdownSchedule(res.data.jadwal);
+            store.setViewMonth(now.getMonth() + 1, now.getFullYear());
+            resolve({ success: true });
+          } else {
+            store.setScheduleError("Data jadwal tidak tersedia");
+            resolve({ success: false, error: "Data jadwal tidak tersedia" });
+          }
+        } catch {
+          const store = useStore.getState();
+          store.setScheduleError(
+            navigator.onLine
+              ? "Gagal memuat jadwal. Coba lagi nanti."
+              : "Anda sedang offline. Periksa koneksi internet."
+          );
+          resolve({ success: false, error: "Gagal memuat jadwal" });
+        }
+      },
+      (error) => {
+        if (error.code === error.PERMISSION_DENIED) {
+          resolve({ success: false, error: "Izin lokasi ditolak. Aktifkan GPS dan izinkan akses lokasi." });
+        } else if (error.code === error.TIMEOUT) {
+          resolve({ success: false, error: "Waktu deteksi habis. Coba lagi." });
+        } else {
+          resolve({ success: false, error: "Gagal mendeteksi lokasi" });
+        }
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
+  });
+}

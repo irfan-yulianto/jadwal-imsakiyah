@@ -110,6 +110,7 @@ export default function MosqueFinder() {
   const [detecting, setDetecting] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [accuracy, setAccuracy] = useState<number | null>(null);
+  const [customRadius, setCustomRadius] = useState<number | null>(null);
 
   // Track the coords, accuracy, and source of the last fetch
   const lastFetchCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -233,7 +234,7 @@ export default function MosqueFinder() {
         if (settledRef.current) return;
         settle();
         if (err.code === err.PERMISSION_DENIED) {
-          setGpsError("Izin lokasi ditolak. Buka pengaturan browser untuk mengizinkan.");
+          setGpsError("Izin lokasi ditolak. Buka pengaturan browser atau gunakan pencarian kota di bawah.");
         } else if (err.code === err.POSITION_UNAVAILABLE) {
           setGpsError("Lokasi tidak tersedia. Pastikan GPS aktif.");
         } else {
@@ -248,6 +249,7 @@ export default function MosqueFinder() {
     setCoords({ lat: city.lat, lng: city.lng });
     setIsGps(false);
     setAccuracy(null);
+    setCustomRadius(null);
     setSearchQuery("");
     setShowSearch(false);
   };
@@ -258,13 +260,14 @@ export default function MosqueFinder() {
     currentAccuracy: number | null,
     forceRefresh?: boolean,
     gpsSource?: boolean,
+    radiusOverride?: number,
   ) => {
     if (isOffline) {
       setError("Anda sedang offline. Periksa koneksi internet Anda.");
       return;
     }
 
-    const radius = getSearchRadius(currentAccuracy);
+    const radius = radiusOverride || getSearchRadius(currentAccuracy);
     const cacheKey = getCacheKey(targetCoords.lat, targetCoords.lng, radius);
     const radiusLabel = radius >= 1000 ? `${radius / 1000} km` : `${radius} m`;
 
@@ -345,7 +348,15 @@ export default function MosqueFinder() {
     ? `https://www.google.com/maps/search/?api=1&query=masjid&center=${coords.lat},${coords.lng}`
     : `https://www.google.com/maps/search/?api=1&query=masjid`;
 
-  const radius = getSearchRadius(accuracy);
+  const radius = customRadius || getSearchRadius(accuracy);
+  const MAX_RADIUS = 10000;
+
+  const handleExpandRadius = () => {
+    if (!coords) return;
+    const newRadius = Math.min(radius * 2, MAX_RADIUS);
+    setCustomRadius(newRadius);
+    fetchMosques(coords, accuracy, true, isGps, newRadius);
+  };
 
   return (
     <div className="space-y-3">
@@ -411,7 +422,7 @@ export default function MosqueFinder() {
             }}
             onFocus={() => searchResults.length > 0 && setShowSearch(true)}
             placeholder="Cari kota untuk lokasi masjid..."
-            className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 py-2.5 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
+            className="w-full rounded-xl border border-slate-200/80 bg-slate-50/80 py-2.5 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
           />
           {showSearch && searchResults.length > 0 && (
             <ul className="absolute z-50 mt-1 max-h-48 w-full overflow-auto rounded-xl border border-slate-100 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
@@ -530,6 +541,18 @@ export default function MosqueFinder() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Expand radius button — shown when results are few and radius can be increased */}
+      {!loading && coords && mosques.length < 5 && radius < MAX_RADIUS && (
+        <button
+          type="button"
+          onClick={handleExpandRadius}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-dashed border-emerald-200 bg-emerald-50/50 py-3 text-xs font-semibold text-emerald-700 transition-colors hover:border-emerald-300 hover:bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-400 dark:hover:border-emerald-700 dark:hover:bg-emerald-950/50"
+        >
+          <SearchIcon size={14} />
+          Perluas Pencarian ({radius >= 1000 ? `${radius / 1000} km` : `${radius} m`} → {Math.min(radius * 2, MAX_RADIUS) >= 1000 ? `${Math.min(radius * 2, MAX_RADIUS) / 1000} km` : `${Math.min(radius * 2, MAX_RADIUS)} m`})
+        </button>
       )}
 
       {/* Google Maps fallback */}

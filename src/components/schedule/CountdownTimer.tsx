@@ -6,7 +6,8 @@ import { syncServerTime, getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
 import { PrayerName, PRAYER_NAMES, PRAYER_KEYS } from "@/types";
 import { ScheduleDay } from "@/types";
-import { PRAYER_ICON_MAP, MapPinIcon } from "@/components/ui/Icons";
+import { PRAYER_ICON_MAP, MapPinIcon, RefreshIcon } from "@/components/ui/Icons";
+import { detectAndUpdateLocation } from "@/lib/detect-location";
 
 interface NextPrayer {
   name: PrayerName;
@@ -114,8 +115,13 @@ export default function CountdownTimer() {
   const setTimeOffset = useStore((s) => s.setTimeOffset);
   const refetchSchedule = useStore((s) => s.refetchSchedule);
   const [nextPrayer, setNextPrayer] = useState<NextPrayer | null>(null);
-  const [time, setTime] = useState({ hours: "--", minutes: "--", seconds: "--" });
   const [loadError, setLoadError] = useState(false);
+  // DOM refs for countdown digits — bypass React re-render on every tick
+  const hoursRef = useRef<HTMLSpanElement>(null);
+  const minutesRef = useRef<HTMLSpanElement>(null);
+  const secondsRef = useRef<HTMLSpanElement>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshError, setRefreshError] = useState("");
   const lastDateRef = useRef<string>("");
   const refetchingRef = useRef(false);
   const refetchCountRef = useRef(0);
@@ -126,6 +132,36 @@ export default function CountdownTimer() {
   }, [setTimeOffset]);
 
   const utcOffset = getUtcOffset(location.timezone);
+
+  // Load saved kecamatan on mount
+  useEffect(() => {
+    if (!location.kecamatan) {
+      try {
+        const saved = localStorage.getItem("detectedKecamatan");
+        if (saved) {
+          const store = useStore.getState();
+          store.setLocation(
+            { id: location.cityId, lokasi: location.cityName, daerah: location.province },
+            location.timezone,
+            saved
+          );
+        }
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleRefreshLocation = useCallback(async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    setRefreshError("");
+    const result = await detectAndUpdateLocation();
+    setIsRefreshing(false);
+    if (!result.success && result.error) {
+      setRefreshError(result.error);
+      setTimeout(() => setRefreshError(""), 4000);
+    }
+  }, [isRefreshing]);
 
   // Recompute which prayer is next (only when schedule/offset changes or date rolls over)
   useEffect(() => {
@@ -155,7 +191,10 @@ export default function CountdownTimer() {
         setLoadError(false);
         nextPrayerRef.current = next;
         setNextPrayer(next);
-        setTime(formatCountdown(next.remainingMs));
+        const formatted = formatCountdown(next.remainingMs);
+        if (hoursRef.current) hoursRef.current.textContent = formatted.hours;
+        if (minutesRef.current) minutesRef.current.textContent = formatted.minutes;
+        if (secondsRef.current) secondsRef.current.textContent = formatted.seconds;
       } else if (!refetchingRef.current && refetchCountRef.current < 3) {
         refetchingRef.current = true;
         refetchCountRef.current += 1;
@@ -168,8 +207,8 @@ export default function CountdownTimer() {
     }
 
     checkAndRefetch();
-    // Re-check every 30s for prayer transitions and date changes
-    const interval = setInterval(checkAndRefetch, 30000);
+    // Re-check every 10s for prayer transitions and date changes
+    const interval = setInterval(checkAndRefetch, 10000);
     return () => clearInterval(interval);
   }, [countdownSchedule, timeOffset, utcOffset, refetchSchedule]);
 
@@ -195,10 +234,17 @@ export default function CountdownTimer() {
       }
 
       if (remainingMs <= 0) {
-        // Prayer time reached — force recomputation on next 30s tick
+        // Prayer time reached — show 00:00:00 and clear ref to trigger recomputation
+        if (hoursRef.current) hoursRef.current.textContent = "00";
+        if (minutesRef.current) minutesRef.current.textContent = "00";
+        if (secondsRef.current) secondsRef.current.textContent = "00";
+        nextPrayerRef.current = null;
         return;
       }
-      setTime(formatCountdown(remainingMs));
+      const formatted = formatCountdown(remainingMs);
+      if (hoursRef.current) hoursRef.current.textContent = formatted.hours;
+      if (minutesRef.current) minutesRef.current.textContent = formatted.minutes;
+      if (secondsRef.current) secondsRef.current.textContent = formatted.seconds;
     }, 1000);
     return () => clearInterval(interval);
   }, [timeOffset, utcOffset]);
@@ -206,23 +252,54 @@ export default function CountdownTimer() {
   const PrayerIcon = nextPrayer ? PRAYER_ICON_MAP[nextPrayer.key] : null;
 
   return (
-    <div role="timer" aria-label="Countdown waktu sholat" className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-4 text-white shadow-xl shadow-green-900/20 md:p-6">
+    <div role="timer" aria-label="Countdown waktu sholat" className="relative min-h-[220px] overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900 via-green-800 to-teal-800 p-4 text-white shadow-xl shadow-green-900/20 md:min-h-[252px] md:p-6">
       {/* Geometric pattern overlay */}
       <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23fff' fill-opacity='1'%3E%3Cpath d='M20 0l4 8h-8zM0 20l8-4v8zM40 20l-8 4v-8zM20 40l-4-8h8z'/%3E%3C/g%3E%3C/svg%3E")`,
       }} />
 
       <div className="relative z-10">
-        {/* Location badge */}
-        <div className="mb-3 flex items-center gap-1.5">
-          <MapPinIcon size={14} className="text-green-300" />
-          <span className="text-xs font-medium text-green-300">
-            {location.cityName}, {location.province}
-          </span>
-          <span className="ml-1 rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-green-200">
-            {location.timezone}
-          </span>
-        </div>
+        {/* Location badge — clickable to refresh GPS */}
+        <button
+          type="button"
+          onClick={handleRefreshLocation}
+          disabled={isRefreshing}
+          aria-label="Perbarui lokasi"
+          className="group mb-3 flex min-h-[44px] w-full cursor-pointer items-center gap-2.5 rounded-xl bg-white/[0.07] px-3 py-2 text-left transition-all hover:bg-white/[0.12] active:scale-[0.98] disabled:opacity-60"
+        >
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-500/20">
+            <MapPinIcon size={16} className="text-green-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="truncate text-xs font-semibold text-green-100">
+                {location.kecamatan
+                  ? `Kec. ${location.kecamatan}`
+                  : location.cityName}
+              </p>
+              <span className="shrink-0 rounded bg-white/10 px-1.5 py-0.5 text-[9px] font-bold leading-none text-green-300">
+                {location.timezone}
+              </span>
+            </div>
+            <p className="mt-0.5 truncate text-[10px] text-green-400">
+              {location.kecamatan
+                ? `${location.cityName}${location.province ? `, ${location.province}` : ""}`
+                : location.province}
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center">
+            {isRefreshing ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-green-300 border-t-transparent" />
+            ) : (
+              <RefreshIcon size={14} className="text-green-300/60 transition-colors group-hover:text-green-200" />
+            )}
+          </div>
+        </button>
+        {refreshError && (
+          <p className="-mt-1.5 mb-2 text-center text-[10px] font-medium text-red-300">
+            {refreshError}
+          </p>
+        )}
 
         {nextPrayer ? (
           <div className="text-center">
@@ -233,25 +310,25 @@ export default function CountdownTimer() {
               </p>
             </div>
 
-            {/* Countdown digits */}
+            {/* Countdown digits — refs written directly to bypass React re-renders */}
             <div className="flex items-center justify-center gap-1.5 md:gap-2">
               <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
-                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
-                  {time.hours}
+                <span ref={hoursRef} className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
+                  --
                 </span>
                 <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Jam</p>
               </div>
               <span className="animate-countdown-pulse font-mono text-2xl font-bold text-green-300 md:text-4xl">:</span>
               <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
-                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
-                  {time.minutes}
+                <span ref={minutesRef} className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
+                  --
                 </span>
                 <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Menit</p>
               </div>
               <span className="animate-countdown-pulse font-mono text-2xl font-bold text-green-300 md:text-4xl">:</span>
               <div className="rounded-xl bg-white/10 px-3 py-2 backdrop-blur-sm md:px-5 md:py-3">
-                <span className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
-                  {time.seconds}
+                <span ref={secondsRef} className="font-mono text-3xl font-extrabold tracking-tight md:text-5xl">
+                  --
                 </span>
                 <p className="mt-0.5 text-[9px] font-medium uppercase tracking-wider text-green-300">Detik</p>
               </div>

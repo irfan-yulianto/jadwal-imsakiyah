@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://si-imsak.vercel.app"),
   title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
   description:
-    "Jadwal Imsakiyah dan waktu sholat untuk seluruh kota di Indonesia. Countdown real-time, generator PDF & gambar untuk masjid Anda.",
+    "Jadwal Imsakiyah dan waktu sholat real-time untuk seluruh kota di Indonesia. Countdown waktu sholat dan pencari masjid terdekat.",
   keywords: [
     "jadwal imsakiyah",
     "jadwal sholat",
@@ -42,7 +42,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Si-Imsak — Jadwal Imsakiyah & Waktu Sholat",
     description:
-      "Jadwal Imsakiyah real-time untuk seluruh kota di Indonesia. Download PDF & gambar untuk masjid Anda.",
+      "Jadwal Imsakiyah dan waktu sholat real-time untuk seluruh kota di Indonesia. Countdown dan pencari masjid terdekat.",
     type: "website",
     url: "https://si-imsak.vercel.app",
     images: [{ url: "/og-image.png", width: 1200, height: 630 }],

@@ -44,12 +44,6 @@ export interface CitySearchResponse {
   data: Location[];
 }
 
-export interface CustomHeader {
-  mosqueName: string;
-  address: string;
-  contact: string;
-}
-
 export type TimezoneLabel = "WIB" | "WITA" | "WIT";
 
 export type PrayerName =

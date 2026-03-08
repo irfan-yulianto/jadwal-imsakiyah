@@ -100,10 +100,8 @@ export default function InstallBanner() {
     try { localStorage.setItem(DISMISSED_KEY, "1"); } catch {}
   }, []);
 
-  if (!mode) return null;
-
   return (
-    <div className="animate-fade-in relative overflow-hidden rounded-2xl border border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-teal-50 px-4 py-3.5 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-teal-950/30">
+    <div className={`relative overflow-hidden rounded-2xl border border-emerald-200/50 bg-gradient-to-r from-emerald-50 to-teal-50 transition-all duration-300 dark:border-emerald-800/40 dark:from-emerald-950/40 dark:to-teal-950/30 ${mode ? "max-h-24 px-4 py-3.5 opacity-100" : "max-h-0 border-0 opacity-0"}`}>
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-green-700 shadow-md shadow-green-600/25">
           <CrescentIcon size={20} className="text-white" />

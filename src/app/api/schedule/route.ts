@@ -120,6 +120,7 @@ export async function GET(request: NextRequest) {
         const res = responses[i];
         if (!res?.status || !res?.data?.jadwal?.[date]) return null;
         const day = res.data.jadwal[date];
+        if (!day.tanggal || !day.imsak || !day.subuh) return null;
         return {
           tanggal: day.tanggal,
           date,

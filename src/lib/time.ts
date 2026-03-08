@@ -6,6 +6,26 @@
  * so the drift calculation is timezone-independent.
  */
 export async function syncServerTime(): Promise<number> {
+  // Use cached offset for instant startup (valid for 1 hour)
+  if (typeof window !== "undefined") {
+    try {
+      const cached = sessionStorage.getItem("timeOffset");
+      if (cached) {
+        const { offset, ts } = JSON.parse(cached);
+        if (typeof offset === "number" && Date.now() - ts < 3600000) {
+          // Refresh in background
+          fetchServerTimeOffset().then((o) => {
+            try { sessionStorage.setItem("timeOffset", JSON.stringify({ offset: o, ts: Date.now() })); } catch {}
+          }).catch(() => {});
+          return offset;
+        }
+      }
+    } catch {}
+  }
+  return fetchServerTimeOffset();
+}
+
+async function fetchServerTimeOffset(): Promise<number> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 5000);
   try {
@@ -20,13 +40,14 @@ export async function syncServerTime(): Promise<number> {
     const data = await res.json();
     const serverTime = new Date(data.datetime).getTime();
     if (isNaN(serverTime)) return 0;
-    // Account for network latency (approximate round-trip / 2)
     const latency = (after - before) / 2;
-    const adjustedServerTime = serverTime + latency;
+    const offset = serverTime + latency - after;
 
-    return adjustedServerTime - after;
+    if (typeof window !== "undefined") {
+      try { sessionStorage.setItem("timeOffset", JSON.stringify({ offset, ts: Date.now() })); } catch {}
+    }
+    return offset;
   } catch {
-    // If worldtimeapi is down or timed out, use client time (offset = 0)
     return 0;
   } finally {
     clearTimeout(timeout);

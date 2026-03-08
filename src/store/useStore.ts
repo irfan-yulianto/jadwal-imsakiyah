@@ -1,15 +1,64 @@
 "use client";
 
 import { create } from "zustand";
-import { CustomHeader, Location, ScheduleDay, TimezoneLabel } from "@/types";
+import { Location, ScheduleDay, TimezoneLabel } from "@/types";
 import { DEFAULT_LOCATION } from "@/lib/constants";
 import { getSchedule } from "@/lib/api";
+import { getTimezone } from "@/lib/timezone";
+
+const SCHEDULE_CACHE_MAX_AGE = 7 * 24 * 3600000; // 7 days
+
+/** Sync-read cached location from localStorage for instant first render */
+function getInitialLocationFromCache(): {
+  cityId: string;
+  cityName: string;
+  province: string;
+  timezone: TimezoneLabel;
+  kecamatan: string;
+} | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("selectedLocation");
+    if (!raw) return null;
+    const loc: Location & { daerah?: string } = JSON.parse(raw);
+    if (!loc.id || !loc.lokasi) return null;
+    const tz = getTimezone(loc.daerah || "");
+    const kecamatan = localStorage.getItem("detectedKecamatan") || "";
+    return {
+      cityId: loc.id,
+      cityName: loc.lokasi,
+      province: loc.daerah || "",
+      timezone: tz,
+      kecamatan,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Sync-read cached schedule from localStorage for instant first render */
+function getInitialScheduleFromCache(cityId: string): ScheduleDay[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const now = new Date();
+    const key = `schedule_${cityId}_${now.getFullYear()}_${now.getMonth() + 1}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!parsed._ts || Date.now() - parsed._ts > SCHEDULE_CACHE_MAX_AGE) return [];
+    if (!parsed.data?.jadwal) return [];
+    return parsed.data.jadwal;
+  } catch {
+    return [];
+  }
+}
 
 interface LocationState {
   cityId: string;
   cityName: string;
   province: string;
   timezone: TimezoneLabel;
+  kecamatan: string;
 }
 
 interface ScheduleState {
@@ -21,7 +70,7 @@ interface ScheduleState {
 interface AppState {
   // Location
   location: LocationState;
-  setLocation: (loc: Location & { daerah?: string }, tz: TimezoneLabel) => void;
+  setLocation: (loc: Location & { daerah?: string }, tz: TimezoneLabel, kecamatan?: string) => void;
 
   // Schedule (table view — user-navigated month)
   schedule: ScheduleState;
@@ -37,10 +86,6 @@ interface AppState {
   viewMonth: number; // 1-12
   viewYear: number;
   setViewMonth: (month: number, year: number) => void;
-
-  // Custom header for PDF/Image
-  customHeader: CustomHeader;
-  setCustomHeader: (header: Partial<CustomHeader>) => void;
 
   // Server time offset (ms)
   timeOffset: number;
@@ -66,26 +111,33 @@ interface AppState {
   _fetchRequestId: number;
 }
 
+const _cachedLocation = getInitialLocationFromCache();
+const _cachedSchedule = _cachedLocation
+  ? getInitialScheduleFromCache(_cachedLocation.cityId)
+  : [];
+
 export const useStore = create<AppState>((set, get) => ({
-  // Location defaults to Jakarta
-  location: {
+  // Location — hydrate from cache for instant first render, fallback to Jakarta
+  location: _cachedLocation || {
     cityId: DEFAULT_LOCATION.id,
     cityName: DEFAULT_LOCATION.lokasi,
     province: DEFAULT_LOCATION.daerah,
     timezone: "WIB",
+    kecamatan: "",
   },
-  setLocation: (loc, tz) =>
+  setLocation: (loc, tz, kecamatan?) =>
     set({
       location: {
         cityId: loc.id,
         cityName: loc.lokasi,
         province: loc.daerah || "",
         timezone: tz,
+        kecamatan: kecamatan || "",
       },
     }),
 
-  // Schedule (table view)
-  schedule: { data: [], loading: false, error: null },
+  // Schedule (table view) — pre-filled from cache if available
+  schedule: { data: _cachedSchedule, loading: _cachedSchedule.length === 0, error: null },
   setSchedule: (data) =>
     set({ schedule: { data, loading: false, error: null } }),
   setScheduleLoading: (loading) =>
@@ -93,21 +145,14 @@ export const useStore = create<AppState>((set, get) => ({
   setScheduleError: (error) =>
     set((state) => ({ schedule: { ...state.schedule, loading: false, error } })),
 
-  // Countdown schedule (always current month)
-  countdownSchedule: [],
+  // Countdown schedule (always current month) — pre-filled from cache
+  countdownSchedule: _cachedSchedule,
   setCountdownSchedule: (data) => set({ countdownSchedule: data }),
 
   // View month
   viewMonth: new Date().getMonth() + 1,
   viewYear: new Date().getFullYear(),
   setViewMonth: (month, year) => set({ viewMonth: month, viewYear: year }),
-
-  // Custom header
-  customHeader: { mosqueName: "", address: "", contact: "" },
-  setCustomHeader: (header) =>
-    set((state) => ({
-      customHeader: { ...state.customHeader, ...header },
-    })),
 
   // User coordinates
   userCoords: null,

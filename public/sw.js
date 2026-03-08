@@ -1,6 +1,7 @@
 // Service worker — enables PWA install + caches API responses for offline use.
 
-const CACHE_NAME = "si-imsak-v1";
+const CACHE_VERSION = "v2";
+const CACHE_NAME = `si-imsak-${CACHE_VERSION}`;
 const API_CACHE_MAX_AGE = 24 * 60 * 60 * 1000; // 24 hours
 
 self.addEventListener("install", () => self.skipWaiting());

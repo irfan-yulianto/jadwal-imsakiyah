@@ -1,21 +1,21 @@
 # Si-Imsak — Jadwal Imsakiyah & Waktu Sholat
 
-Aplikasi web jadwal imsakiyah dan waktu sholat untuk seluruh kota/kabupaten di Indonesia. Menampilkan countdown real-time menuju waktu sholat berikutnya, jadwal harian & bulanan dengan konversi kalender Hijriyah otomatis, serta fitur download PDF dan gambar untuk kebutuhan masjid.
+Aplikasi web jadwal imsakiyah dan waktu sholat real-time untuk seluruh kota/kabupaten di Indonesia. Menampilkan countdown menuju waktu sholat berikutnya, jadwal harian & bulanan dengan konversi kalender Hijriyah otomatis, serta pencari masjid terdekat.
 
 ## Fitur
 
-- **Countdown Real-time** — Timer mundur menuju waktu sholat berikutnya dengan sinkronisasi waktu server, berjalan 24/7 secara siklis (termasuk transisi Isya ke Imsak besok)
+- **Countdown Real-time** — Timer mundur menuju waktu sholat berikutnya dengan sinkronisasi waktu server, berjalan 24/7 secara siklis (termasuk transisi Isya ke Imsak besok). Menggunakan DOM refs untuk performa optimal tanpa re-render React setiap detik
 - **Jadwal Hari Ini** — Kartu waktu sholat hari ini dengan highlight otomatis waktu sholat yang sedang berlaku
-- **Tabel Jadwal Bulanan** — Navigasi antar bulan untuk melihat jadwal sepanjang tahun
-- **Kalender Hijriyah** — Konversi otomatis ke kalender Hijriyah menggunakan `Intl.DateTimeFormat` (`islamic-umalqura`) — mendukung seluruh 12 bulan Hijriyah sepanjang tahun
-- **Deteksi Lokasi** — Geolocation otomatis dengan database 514 kota/kabupaten di seluruh Indonesia
+- **Tabel Jadwal Bulanan** — Navigasi antar bulan untuk melihat jadwal sepanjang tahun, tampilan tabel (desktop) dan kartu per hari (mobile)
+- **Kalender Hijriyah** — Konversi otomatis ke kalender Hijriyah menggunakan `Intl.DateTimeFormat` (`islamic-umalqura`)
+- **Pencari Masjid Terdekat** — Cari masjid di sekitar lokasi GPS atau kota pilihan via OpenStreetMap Overpass API, dengan navigasi langsung ke Google Maps
+- **Deteksi Lokasi** — Geolocation otomatis dengan reverse geocoding hingga tingkat kecamatan, database 514 kota/kabupaten di seluruh Indonesia
 - **Pencarian Kota** — Cari kota/kabupaten dari database Kemenag RI via MyQuran API v3
-- **Generator PDF** — Download jadwal dalam format PDF A4 siap cetak dengan kustomisasi header masjid
-- **Generator Gambar** — Export jadwal sebagai gambar PNG untuk Instagram Story (9:16) dan kartu bulanan (A4)
-- **Dark Mode** — Mengikuti preferensi sistem (OS) dengan toggle manual light/dark
-- **Offline Support** — Cache jadwal di localStorage untuk akses tanpa internet
+- **Dark Mode** — Mengikuti preferensi sistem (OS)
+- **PWA** — Installable sebagai Progressive Web App dengan service worker caching
+- **Offline Support** — Cache jadwal di localStorage dan service worker untuk akses tanpa internet
 - **Responsive** — Optimal di mobile dan desktop dengan bottom navigation pada mobile
-- **Sinkronisasi Waktu** — NTP-style time sync via WorldTimeAPI untuk akurasi countdown
+- **Sinkronisasi Waktu** — NTP-style time sync via WorldTimeAPI dengan sessionStorage caching untuk instant startup
 
 ## Tech Stack
 
@@ -24,17 +24,17 @@ Aplikasi web jadwal imsakiyah dan waktu sholat untuk seluruh kota/kabupaten di I
 | Framework | Next.js 16 (App Router, Turbopack) |
 | UI | React 19, Tailwind CSS 4 |
 | State | Zustand 5 |
-| PDF | @react-pdf/renderer |
-| Image Export | html-to-image |
 | Analytics | Vercel Analytics, Vercel Speed Insights, Microsoft Clarity |
 | Font | Plus Jakarta Sans, JetBrains Mono |
 | Bahasa | TypeScript 5 |
 
 ## Sumber Data
 
-Jadwal sholat bersumber dari **[MyQuran API v3](https://api.myquran.com)** (`api.myquran.com/v3/sholat`) yang mengambil data resmi dari **Kementerian Agama Republik Indonesia (Kemenag RI)**.
-
-Sinkronisasi waktu menggunakan **[WorldTimeAPI](https://worldtimeapi.org)** dengan fallback ke waktu lokal perangkat jika API tidak tersedia.
+| Data | Sumber |
+|------|--------|
+| Jadwal Sholat | [MyQuran API v3](https://api.myquran.com) — data resmi Kemenag RI |
+| Masjid Terdekat | [OpenStreetMap Overpass API](https://overpass-api.de) — dengan fallback multi-endpoint |
+| Sinkronisasi Waktu | [WorldTimeAPI](https://worldtimeapi.org) — fallback ke waktu lokal perangkat |
 
 ## Memulai
 
@@ -73,22 +73,22 @@ src/
 ├── app/
 │   ├── api/
 │   │   ├── cities/route.ts      # Proxy pencarian kota ke MyQuran API v3
+│   │   ├── geocode/route.ts     # Reverse geocoding (kecamatan dari koordinat)
+│   │   ├── mosques/route.ts     # Pencarian masjid via Overpass API
 │   │   └── schedule/route.ts    # Proxy jadwal sholat ke MyQuran API v3
 │   ├── layout.tsx               # Root layout (font, metadata, analytics, theme init)
 │   ├── globals.css              # Global styles, animasi, Islamic geometric background
-│   └── page.tsx                 # Halaman utama
+│   └── page.tsx                 # Halaman utama (2 tab: Jadwal & Masjid)
 ├── components/
-│   ├── generator/
-│   │   ├── ImageGenerator.tsx   # Export gambar PNG (Daily Story & Monthly)
-│   │   ├── PdfGenerator.tsx     # Download PDF jadwal
-│   │   ├── PdfDocument.tsx      # Template dokumen PDF (A4)
-│   │   ├── DailyCard.tsx        # Kartu harian 1080x1920 (Instagram Story)
-│   │   └── MonthlyCard.tsx      # Kartu bulanan 2480x3508 (A4)
 │   ├── layout/
 │   │   ├── Header.tsx           # Floating header (glassmorphism) + theme toggle
 │   │   └── Footer.tsx           # Footer
 │   ├── location/
 │   │   └── LocationSearch.tsx   # Search kota + geolocation + offline detection
+│   ├── mosque/
+│   │   └── MosqueFinder.tsx     # Pencari masjid terdekat (GPS + search kota)
+│   ├── pwa/
+│   │   └── InstallBanner.tsx    # PWA install prompt banner
 │   ├── schedule/
 │   │   ├── CountdownTimer.tsx   # Countdown real-time ke sholat berikutnya
 │   │   ├── TodayCard.tsx        # Kartu waktu sholat hari ini + Hijriyah banner
@@ -98,25 +98,28 @@ src/
 ├── lib/
 │   ├── api.ts                   # Client API (fetch + timeout + offline cache)
 │   ├── cities.ts                # Database 514 kota/kabupaten dengan koordinat
-│   ├── constants.ts             # Konfigurasi (default location, timezone map)
+│   ├── constants.ts             # Konfigurasi (default location, API base URL)
+│   ├── detect-location.ts       # Deteksi lokasi otomatis (GPS + reverse geocoding)
 │   ├── hijri.ts                 # Konversi kalender Hijriyah (Intl.DateTimeFormat)
+│   ├── mosques.ts               # Overpass query builder + response parser
 │   ├── rate-limit.ts            # Rate limiter untuk API routes (sliding window)
 │   ├── time.ts                  # Sinkronisasi waktu server (NTP-style)
 │   └── timezone.ts              # Mapping timezone Indonesia (WIB/WITA/WIT)
 ├── store/
-│   └── useStore.ts              # Zustand store (location, schedule, countdown, theme)
+│   └── useStore.ts              # Zustand store (location, schedule, countdown, UI)
 └── types/
     └── index.ts                 # TypeScript types & interfaces
 ```
 
 ## Keamanan
 
-- **Content Security Policy (CSP)** — Whitelist ketat untuk script, connect, dan image sources
+- **Content Security Policy (CSP)** — Whitelist ketat untuk script, connect, image, dan font sources
 - **HSTS** — Strict-Transport-Security dengan preload (max-age 2 tahun)
 - **Security Headers** — X-Frame-Options (DENY), X-Content-Type-Options, Referrer-Policy, Permissions-Policy
-- **Rate Limiting** — Sliding window 30 req/menit per IP dengan cap 10.000 entries
-- **Input Sanitization** — Validasi dan sanitasi pada semua API routes (city_id, year, month, keyword)
-- **Request Timeout** — 15 detik timeout pada semua upstream API calls
+- **Rate Limiting** — Sliding window per IP (30 req/menit untuk jadwal, 10 req/menit untuk masjid) dengan cap 10.000 entries
+- **Input Validation** — Validasi ketat pada semua API routes (MD5 city_id, koordinat dalam batas Indonesia, radius 100-10.000m)
+- **Request Timeout** — 5-15 detik timeout pada semua upstream API calls dengan retry logic
+- **Service Worker Versioning** — Cache invalidation via versioned cache name pada setiap deploy
 - **No Personal Data** — Tidak menyimpan data personal pengguna di server
 
 ## Deployment

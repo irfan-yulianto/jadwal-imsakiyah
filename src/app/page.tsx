@@ -8,22 +8,14 @@ import CountdownTimer from "@/components/schedule/CountdownTimer";
 import TodayCard from "@/components/schedule/TodayCard";
 import ScheduleTable from "@/components/schedule/ScheduleTable";
 import InstallBanner from "@/components/pwa/InstallBanner";
-import { CalendarIcon, DownloadIcon, MosqueIcon } from "@/components/ui/Icons";
+import { CalendarIcon, MosqueIcon } from "@/components/ui/Icons";
 
-const PdfGenerator = dynamic(() => import("@/components/generator/PdfGenerator"), {
-  ssr: false,
-  loading: () => <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />,
-});
-const ImageGenerator = dynamic(() => import("@/components/generator/ImageGenerator"), {
-  ssr: false,
-  loading: () => <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />,
-});
 const MosqueFinder = dynamic(() => import("@/components/mosque/MosqueFinder"), {
   ssr: false,
   loading: () => <div className="h-32 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />,
 });
 
-type ActiveTab = "jadwal" | "generator" | "masjid";
+type ActiveTab = "jadwal" | "masjid";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("jadwal");
@@ -53,18 +45,9 @@ export default function Home() {
             <InstallBanner />
           </div>
 
-          {/* Content area */}
-          <div className="grid gap-4 md:grid-cols-[1fr_360px]">
-            {/* Schedule Table — always visible on desktop */}
-            <div className={activeTab === "jadwal" ? "block" : "hidden md:block"}>
-              <ScheduleTable />
-            </div>
-
-            {/* Generator sidebar — always visible on desktop */}
-            <div className={`space-y-4 ${activeTab === "generator" ? "block" : "hidden md:block"}`}>
-              <PdfGenerator />
-              <ImageGenerator />
-            </div>
+          {/* Schedule Table */}
+          <div className={activeTab === "jadwal" ? "block" : "hidden md:block"}>
+            <ScheduleTable />
           </div>
         </div>
 
@@ -89,17 +72,6 @@ export default function Home() {
           >
             <CalendarIcon size={20} />
             <span className="text-[10px] font-semibold">Jadwal</span>
-          </button>
-          <button
-            type="button"
-            aria-current={activeTab === "generator" ? "page" : undefined}
-            onClick={() => setActiveTab("generator")}
-            className={`flex flex-1 cursor-pointer flex-col items-center gap-1 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-inset ${
-              activeTab === "generator" ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"
-            }`}
-          >
-            <DownloadIcon size={20} />
-            <span className="text-[10px] font-semibold">Download</span>
           </button>
           <button
             type="button"

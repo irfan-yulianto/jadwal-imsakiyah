@@ -16,7 +16,7 @@ function evictOldScheduleCaches() {
           keysToRemove.push(key);
         }
       } catch {
-        keysToRemove.push(key!);
+        if (key) keysToRemove.push(key);
       }
     }
   }

@@ -16,13 +16,13 @@ setInterval(() => {
 
 /**
  * Extract client IP from x-forwarded-for header.
- * Uses the rightmost non-private IP (closest to server, hardest to spoof).
+ * Uses the leftmost IP (original client, set by trusted edge proxy like Vercel).
  */
 export function extractClientIp(header: string | null): string {
   if (!header) return "unknown";
-  const ips = header.split(",").map((s) => s.trim()).filter(Boolean);
-  // Rightmost IP is set by the nearest trusted proxy
-  return ips[ips.length - 1] || "unknown";
+  // First IP is the original client (set by the edge proxy like Vercel)
+  const first = header.split(",")[0]?.trim();
+  return first || "unknown";
 }
 
 export function isRateLimited(ip: string, limit: number = maxRequests): boolean {

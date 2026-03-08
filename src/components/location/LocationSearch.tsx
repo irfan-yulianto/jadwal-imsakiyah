@@ -4,9 +4,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Location } from "@/types";
 import { searchCities, getSchedule } from "@/lib/api";
 import { getTimezone } from "@/lib/timezone";
-import { getCityGuess } from "@/lib/cities";
 import { useStore } from "@/store/useStore";
 import { SearchIcon, MapPinIcon } from "@/components/ui/Icons";
+import { detectAndUpdateLocation } from "@/lib/detect-location";
 
 export default function LocationSearch() {
   const [query, setQuery] = useState("");
@@ -27,7 +27,6 @@ export default function LocationSearch() {
   const setViewMonth = useStore((s) => s.setViewMonth);
   const setCountdownSchedule = useStore((s) => s.setCountdownSchedule);
   const setIsOffline = useStore((s) => s.setIsOffline);
-  const setUserCoords = useStore((s) => s.setUserCoords);
 
   // Online/offline detection
   useEffect(() => {
@@ -69,44 +68,18 @@ export default function LocationSearch() {
   );
 
   const detectLocation = useCallback(async () => {
-    if (!navigator.geolocation) return;
     setIsDetecting(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-          const cityGuess = getCityGuess(pos.coords.latitude, pos.coords.longitude);
-          if (cityGuess) {
-            const searchRes = await searchCities(cityGuess);
-            if (searchRes.status && searchRes.data?.length > 0) {
-              const guessNorm = cityGuess.toUpperCase().trim();
-              const city =
-                searchRes.data.find(
-                  (c: Location) => c.lokasi.toUpperCase().trim() === guessNorm
-                ) ?? searchRes.data[0];
-              try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
-              try { localStorage.setItem("locationPermissionDismissed", String(Date.now())); } catch {}
-              setShowLocationPrompt(false);
-              fetchSchedule(city.id, city.daerah || "", city);
-            }
-          }
-        } catch {
-          // Stick with default
-        } finally {
-          setIsDetecting(false);
-        }
-      },
-      (error) => {
-        setIsDetecting(false);
-        setShowLocationPrompt(false);
-        try { localStorage.setItem("locationPermissionDismissed", String(Date.now())); } catch {}
-        if (error.code === error.PERMISSION_DENIED) {
-          setScheduleError("Izin lokasi ditolak. Gunakan pencarian manual di atas.");
-        }
-      },
-      { timeout: 5000 }
-    );
-  }, [fetchSchedule]);
+    const result = await detectAndUpdateLocation();
+    setIsDetecting(false);
+    if (result.success) {
+      setShowLocationPrompt(false);
+    } else {
+      setShowLocationPrompt(false);
+      if (result.error?.includes("ditolak")) {
+        setScheduleError("Izin lokasi ditolak. Gunakan pencarian manual di atas.");
+      }
+    }
+  }, [setScheduleError]);
 
   useEffect(() => {
     try {
@@ -229,7 +202,10 @@ export default function LocationSearch() {
   const handleSelect = (city: Location) => {
     setQuery("");
     setIsOpen(false);
-    try { localStorage.setItem("selectedLocation", JSON.stringify(city)); } catch {}
+    try {
+      localStorage.setItem("selectedLocation", JSON.stringify(city));
+      localStorage.removeItem("detectedKecamatan");
+    } catch {}
     fetchSchedule(city.id, city.daerah || "", city);
   };
 
@@ -288,7 +264,7 @@ export default function LocationSearch() {
             }
           }}
           placeholder="Cari kota..."
-          className="w-full rounded-lg border border-slate-200/80 bg-slate-50/80 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/20 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
+          className="w-full rounded-lg border border-slate-200/80 bg-slate-50/80 py-2 pl-9 pr-4 text-xs font-medium text-slate-700 placeholder-slate-400 transition-all focus:border-emerald-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400/40 dark:border-slate-600/80 dark:bg-slate-800/80 dark:text-slate-200 dark:placeholder-slate-500 dark:focus:border-emerald-500 dark:focus:bg-slate-800"
         />
         {isSearching && (
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
