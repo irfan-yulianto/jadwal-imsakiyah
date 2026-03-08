@@ -4,109 +4,18 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useStore } from "@/store/useStore";
 import { syncServerTime, getAdjustedTime } from "@/lib/time";
 import { getUtcOffset } from "@/lib/timezone";
-import { PrayerName, PRAYER_NAMES, PRAYER_KEYS } from "@/types";
-import { ScheduleDay } from "@/types";
 import { PRAYER_ICON_MAP, MapPinIcon, RefreshIcon } from "@/components/ui/Icons";
 import { detectAndUpdateLocation } from "@/lib/detect-location";
-
-interface NextPrayer {
-  name: PrayerName;
-  key: string;
-  time: string;
-  remainingMs: number;
-  isTomorrow?: boolean;
-}
-
-function getLocalDate(now: Date, utcOffset: number): Date {
-  return new Date(now.getTime() + utcOffset * 3600000);
-}
-
-function getDateStr(localTime: Date): string {
-  return localTime.toISOString().split("T")[0];
-}
-
-function getTodaySchedule(
-  schedules: ScheduleDay[],
-  now: Date,
-  utcOffset: number
-): ScheduleDay | null {
-  const dateStr = getDateStr(getLocalDate(now, utcOffset));
-  return schedules.find((s) => s.date === dateStr) || null;
-}
-
-function getTomorrowSchedule(
-  schedules: ScheduleDay[],
-  now: Date,
-  utcOffset: number
-): ScheduleDay | null {
-  const localTime = getLocalDate(now, utcOffset);
-  const tomorrow = new Date(localTime);
-  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
-  const dateStr = getDateStr(tomorrow);
-  return schedules.find((s) => s.date === dateStr) || null;
-}
-
-function parseTimeToSeconds(timeStr: string): number {
-  const [h, m] = timeStr.split(":").map(Number);
-  return h * 3600 + m * 60;
-}
-
-function getNextPrayerCyclic(
-  schedules: ScheduleDay[],
-  now: Date,
-  utcOffset: number
-): NextPrayer | null {
-  const localTime = getLocalDate(now, utcOffset);
-  const localHours = localTime.getUTCHours();
-  const localMinutes = localTime.getUTCMinutes();
-  const localSeconds = localTime.getUTCSeconds();
-  const currentTotalSeconds = localHours * 3600 + localMinutes * 60 + localSeconds;
-
-  const todaySchedule = getTodaySchedule(schedules, now, utcOffset);
-
-  // Try today's remaining prayers
-  if (todaySchedule) {
-    for (let i = 0; i < PRAYER_KEYS.length; i++) {
-      const key = PRAYER_KEYS[i];
-      const timeStr = todaySchedule[key];
-      if (!timeStr) continue;
-
-      const prayerTotalSeconds = parseTimeToSeconds(timeStr);
-      if (prayerTotalSeconds > currentTotalSeconds) {
-        const remainingMs = (prayerTotalSeconds - currentTotalSeconds) * 1000;
-        return { name: PRAYER_NAMES[i], key, time: timeStr, remainingMs };
-      }
-    }
-  }
-
-  // All today's prayers passed → countdown to tomorrow's Imsak
-  const tomorrowSchedule = getTomorrowSchedule(schedules, now, utcOffset);
-  if (tomorrowSchedule && tomorrowSchedule.imsak) {
-    const tomorrowImsakSeconds = parseTimeToSeconds(tomorrowSchedule.imsak);
-    const secondsLeftToday = 86400 - currentTotalSeconds;
-    const remainingMs = (secondsLeftToday + tomorrowImsakSeconds) * 1000;
-    return {
-      name: "Imsak",
-      key: "imsak",
-      time: tomorrowSchedule.imsak,
-      remainingMs,
-      isTomorrow: true,
-    };
-  }
-
-  // No tomorrow data (end of month) → return null to trigger refetch
-  return null;
-}
-
-function formatCountdown(ms: number): { hours: string; minutes: string; seconds: string } {
-  if (ms <= 0) return { hours: "00", minutes: "00", seconds: "00" };
-  const totalSeconds = Math.floor(ms / 1000);
-  return {
-    hours: String(Math.floor(totalSeconds / 3600)).padStart(2, "0"),
-    minutes: String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, "0"),
-    seconds: String(totalSeconds % 60).padStart(2, "0"),
-  };
-}
+import {
+  type NextPrayer,
+  getLocalDate,
+  getDateStr,
+  getTodaySchedule,
+  getTomorrowSchedule,
+  parseTimeToSeconds,
+  getNextPrayerCyclic,
+  formatCountdown,
+} from "@/lib/countdown-helpers";
 
 export default function CountdownTimer() {
   const countdownSchedule = useStore((s) => s.countdownSchedule);
