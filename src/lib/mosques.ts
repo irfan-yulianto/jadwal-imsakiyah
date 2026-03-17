@@ -1,3 +1,5 @@
+import { MaxHeap } from "./heap";
+
 export interface Mosque {
   id: string;
   name: string;
@@ -108,7 +110,7 @@ export function parseOverpassResponse(
   if (!data?.elements?.length) return [];
 
   const seen = new Set<string>();
-  const mosques: Mosque[] = [];
+  const heap = new MaxHeap<Mosque>((a, b) => a.distance - b.distance);
 
   for (const el of data.elements) {
     const key = `${el.type}/${el.id}`;
@@ -118,19 +120,38 @@ export function parseOverpassResponse(
     const center = getCenter(el);
     if (!center) continue;
 
-    const name = getMosqueName(el.tags);
-    const address = el.tags?.["addr:street"] || el.tags?.["addr:full"] || undefined;
+    const distance = haversineDistance(userLat, userLng, center.lat, center.lng);
 
-    mosques.push({
-      id: key,
-      name,
-      lat: center.lat,
-      lng: center.lng,
-      distance: haversineDistance(userLat, userLng, center.lat, center.lng),
-      address,
-    });
+    if (heap.size() < limit) {
+      const name = getMosqueName(el.tags);
+      const address = el.tags?.["addr:street"] || el.tags?.["addr:full"] || undefined;
+
+      heap.push({
+        id: key,
+        name,
+        lat: center.lat,
+        lng: center.lng,
+        distance,
+        address,
+      });
+    } else {
+      const furthest = heap.peek();
+      if (furthest && distance < furthest.distance) {
+        heap.pop();
+        const name = getMosqueName(el.tags);
+        const address = el.tags?.["addr:street"] || el.tags?.["addr:full"] || undefined;
+
+        heap.push({
+          id: key,
+          name,
+          lat: center.lat,
+          lng: center.lng,
+          distance,
+          address,
+        });
+      }
+    }
   }
 
-  mosques.sort((a, b) => a.distance - b.distance);
-  return mosques.slice(0, limit);
+  return heap.toArray().sort((a, b) => a.distance - b.distance);
 }
