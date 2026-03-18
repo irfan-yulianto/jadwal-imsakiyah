@@ -1,0 +1,22 @@
+$ next dev
+▲ Next.js 16.1.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+
+✓ Starting...
+Attention: Next.js now collects completely anonymous telemetry regarding usage.
+This information is used to shape Next.js' roadmap and prioritize features.
+You can learn more, including how to opt-out if you'd not like to participate in this anonymous program, by visiting the following URL:
+https://nextjs.org/telemetry
+
+✓ Ready in 1131ms
+○ Compiling / ...
+ GET / 200 in 6.1s (compile: 5.2s, render: 916ms)
+ GET /api/schedule?city_id=58a2fc6ed39fd083f55d4182bf88826d&year=2026&month=3 200 in 5.1s (compile: 1269ms, render: 3.9s)
+ GET /api/mosques?lat=-6.17&lng=106.85&radius=2000 500 in 18.5s (compile: 945ms, render: 17.5s)
+ GET / 200 in 113ms (compile: 6ms, render: 107ms)
+ GET /api/schedule?city_id=58a2fc6ed39fd083f55d4182bf88826d&year=2026&month=3 200 in 2.1s (compile: 5ms, render: 2.1s)
+ GET /api/mosques?lat=-6.17&lng=106.85&radius=2000 200 in 2.0s (compile: 5ms, render: 2.0s)
+ GET / 200 in 89ms (compile: 4ms, render: 86ms)
+ GET /api/schedule?city_id=58a2fc6ed39fd083f55d4182bf88826d&year=2026&month=3 200 in 36ms (compile: 6ms, render: 29ms)
+ GET /api/mosques?lat=-6.17&lng=106.85&radius=2000 200 in 3.6s (compile: 4ms, render: 3.6s)
