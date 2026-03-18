@@ -307,7 +307,7 @@ export default function MosqueFinder() {
         }
       } else {
         // U6 fix: distinct "API error" message
-        setError(data.error || "Server gagal memuat data masjid. Coba tekan Refresh.");
+        setError(data.error || "Gagal mengambil data dari server API. Silakan coba lagi.");
       }
     } catch {
       // U6 fix: distinct "network error" message
