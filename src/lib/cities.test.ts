@@ -37,4 +37,15 @@ describe("getCityGuess", () => {
   it("returns correct city for Pontianak (near equator)", () => {
     expect(getCityGuess(-0.02, 109.34)).toBe("KOTA PONTIANAK");
   });
+
+  // Known centroid limitations — reverse geocoding (Nominatim) resolves these
+  it("returns KAB. LAMONGAN for Benjeng, Gresik (known centroid limitation)", () => {
+    // Benjeng is in KAB. GRESIK but closer to Lamongan centroid
+    expect(getCityGuess(-7.25, 112.43)).toBe("KAB. LAMONGAN");
+  });
+
+  it("returns KAB. BEKASI for Pekayon, Kota Bekasi (known centroid limitation)", () => {
+    // Pekayon is in KOTA BEKASI but centroids are only 1.6km apart
+    expect(getCityGuess(-6.27, 106.98)).toBe("KAB. BEKASI");
+  });
 });

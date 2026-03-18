@@ -26,6 +26,23 @@ function evictOldScheduleCaches() {
   }
 }
 
+export async function reverseGeocodeCity(lat: number, lng: number): Promise<string> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  try {
+    const res = await fetch(`${API_BASE}/geocode?lat=${lat}&lng=${lng}`, {
+      signal: controller.signal,
+    });
+    if (!res.ok) return "";
+    const data = await res.json();
+    return data.status ? data.city : "";
+  } catch {
+    return "";
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 export async function searchCities(keyword: string, signal?: AbortSignal): Promise<CitySearchResponse> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);

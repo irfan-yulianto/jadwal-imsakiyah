@@ -1,6 +1,6 @@
 import { useStore } from "@/store/useStore";
 import { getCityGuess } from "./cities";
-import { searchCities, getSchedule } from "./api";
+import { reverseGeocodeCity, searchCities, getSchedule } from "./api";
 import { getTimezone } from "./timezone";
 import { Location } from "@/types";
 
@@ -27,8 +27,10 @@ export function detectAndUpdateLocation(): Promise<DetectionResult> {
 
         store.setUserCoords({ lat: latitude, lng: longitude });
 
-        // Find nearest city from local database
-        const cityGuess = getCityGuess(latitude, longitude);
+        // Try reverse geocoding first, fall back to local centroid database
+        let geocodedCity = "";
+        try { geocodedCity = await reverseGeocodeCity(latitude, longitude); } catch {}
+        const cityGuess = geocodedCity || getCityGuess(latitude, longitude);
         if (!cityGuess) {
           resolve({ success: false, error: "Tidak dapat mendeteksi kota" });
           return;

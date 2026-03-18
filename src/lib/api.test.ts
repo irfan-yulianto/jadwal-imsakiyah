@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { searchCities, getSchedule } from "./api";
+import { reverseGeocodeCity, searchCities, getSchedule } from "./api";
 
 beforeEach(() => {
   localStorage.clear();
@@ -8,6 +8,34 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("reverseGeocodeCity", () => {
+  it("returns city name on success", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: true, city: "KAB. GRESIK" }),
+    }));
+    expect(await reverseGeocodeCity(-7.25, 112.43)).toBe("KAB. GRESIK");
+  });
+
+  it("returns empty string on non-ok response", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false }));
+    expect(await reverseGeocodeCity(-7.25, 112.43)).toBe("");
+  });
+
+  it("returns empty string on fetch error", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("timeout")));
+    expect(await reverseGeocodeCity(-7.25, 112.43)).toBe("");
+  });
+
+  it("returns empty string when status is false", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ status: false, city: "" }),
+    }));
+    expect(await reverseGeocodeCity(-7.25, 112.43)).toBe("");
+  });
 });
 
 describe("searchCities", () => {
