@@ -93,11 +93,8 @@ export default function RootLayout({
           }}
         />
         <Script
-          id="sw-register"
+          src="/register-sw.js"
           strategy="afterInteractive"
-          dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js').catch(function(){})}`,
-          }}
         />
         {children}
         <Analytics />
