@@ -81,7 +81,12 @@ export default function LocationSearch() {
     }
   }, [setScheduleError]);
 
+  const hasInitialized = useRef(false);
+
   useEffect(() => {
+    if (hasInitialized.current) return;
+    hasInitialized.current = true;
+
     try {
       const savedLocation = localStorage.getItem("selectedLocation");
       if (savedLocation) {
@@ -135,8 +140,7 @@ export default function LocationSearch() {
       lokasi: location.cityName,
       daerah: location.province,
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchSchedule, location.cityId, location.cityName, location.province]);
 
   // Auto-refresh: check every hour if month changed
   useEffect(() => {
