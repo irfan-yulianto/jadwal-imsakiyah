@@ -118,6 +118,7 @@ export default function MosqueFinder() {
   const lastFetchWasGpsRef = useRef(false);
   const watchIdRef = useRef<number | null>(null);
   const settleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const settledRef = useRef<boolean>(false);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -166,15 +167,19 @@ export default function MosqueFinder() {
     return () => {
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
       }
       if (settleTimerRef.current !== null) {
         clearTimeout(settleTimerRef.current);
+        settleTimerRef.current = null;
       }
+      settledRef.current = true;
     };
   }, []);
 
   // B3 fix: settle uses ref flag + clears both timer and watch atomically
   const cancelGps = useCallback(() => {
+    settledRef.current = true;
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -197,13 +202,11 @@ export default function MosqueFinder() {
 
     setDetecting(true);
     setGpsError(null);
-
-    const settledRef = { current: false };
+    settledRef.current = false;
 
     const settle = () => {
       if (settledRef.current) return;
-      settledRef.current = true;
-      cancelGps();
+      cancelGps(); // cancelGps now sets settledRef.current = true
     };
 
     // Auto-stop after 15 seconds
