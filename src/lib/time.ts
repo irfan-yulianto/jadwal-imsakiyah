@@ -15,12 +15,20 @@ export async function syncServerTime(): Promise<number> {
         if (typeof offset === "number" && Date.now() - ts < 3600000) {
           // Refresh in background
           fetchServerTimeOffset().then((o) => {
-            try { sessionStorage.setItem("timeOffset", JSON.stringify({ offset: o, ts: Date.now() })); } catch {}
-          }).catch(() => {});
+            try {
+              sessionStorage.setItem("timeOffset", JSON.stringify({ offset: o, ts: Date.now() }));
+            } catch (e) {
+              console.warn("Failed to write timeOffset in sessionStorage", e);
+            }
+          }).catch((e) => {
+            console.warn("Background server time fetch failed", e);
+          });
           return offset;
         }
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Failed to read timeOffset from sessionStorage", e);
+    }
   }
   return fetchServerTimeOffset();
 }
@@ -44,10 +52,15 @@ async function fetchServerTimeOffset(): Promise<number> {
     const offset = serverTime + latency - after;
 
     if (typeof window !== "undefined") {
-      try { sessionStorage.setItem("timeOffset", JSON.stringify({ offset, ts: Date.now() })); } catch {}
+      try {
+        sessionStorage.setItem("timeOffset", JSON.stringify({ offset, ts: Date.now() }));
+      } catch (e) {
+        console.warn("Failed to write timeOffset in sessionStorage", e);
+      }
     }
     return offset;
-  } catch {
+  } catch (e) {
+    console.warn("Failed to fetch server time offset", e);
     return 0;
   } finally {
     clearTimeout(timeout);
