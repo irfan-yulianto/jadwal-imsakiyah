@@ -86,26 +86,57 @@ describe("GET /api/schedule", () => {
   it("returns 400 for year below 2020", async () => {
     const res = await GET(makeRequest({ city_id: validCityId, year: "2019", month: "3" }));
     expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid year");
   });
 
   it("returns 400 for year above 2030", async () => {
     const res = await GET(makeRequest({ city_id: validCityId, year: "2031", month: "3" }));
     expect(res.status).toBe(400);
-  });
-
-  it("returns 400 for month 0", async () => {
-    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "0" }));
-    expect(res.status).toBe(400);
-  });
-
-  it("returns 400 for month 13", async () => {
-    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "13" }));
-    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid year");
   });
 
   it("returns 400 for non-integer year", async () => {
     const res = await GET(makeRequest({ city_id: validCityId, year: "2024.5", month: "3" }));
     expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid year");
+  });
+
+  it("returns 400 for non-numeric year", async () => {
+    const res = await GET(makeRequest({ city_id: validCityId, year: "abc", month: "3" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid year");
+  });
+
+  it("returns 400 for month 0", async () => {
+    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "0" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid month");
+  });
+
+  it("returns 400 for month 13", async () => {
+    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "13" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid month");
+  });
+
+  it("returns 400 for non-integer month", async () => {
+    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "3.5" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid month");
+  });
+
+  it("returns 400 for non-numeric month", async () => {
+    const res = await GET(makeRequest({ city_id: validCityId, year: "2026", month: "xyz" }));
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.error).toBe("Invalid month");
   });
 
   it("returns 502 when all upstream calls fail", async () => {
