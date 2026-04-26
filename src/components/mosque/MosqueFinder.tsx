@@ -162,22 +162,6 @@ export default function MosqueFinder() {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
-  // Cleanup watchPosition on unmount
-  useEffect(() => {
-    return () => {
-      if (watchIdRef.current !== null) {
-        navigator.geolocation.clearWatch(watchIdRef.current);
-        watchIdRef.current = null;
-      }
-      if (settleTimerRef.current !== null) {
-        clearTimeout(settleTimerRef.current);
-        settleTimerRef.current = null;
-      }
-      settledRef.current = true;
-    };
-  }, []);
-
-  // B3 fix: settle uses ref flag + clears both timer and watch atomically
   const cancelGps = useCallback(() => {
     settledRef.current = true;
     if (watchIdRef.current !== null) {
@@ -190,6 +174,11 @@ export default function MosqueFinder() {
     }
     setDetecting(false);
   }, []);
+
+  // Cleanup watchPosition on unmount
+  useEffect(() => {
+    return () => cancelGps();
+  }, [cancelGps]);
 
   const detectGps = useCallback(() => {
     if (!navigator.geolocation) {
@@ -214,7 +203,6 @@ export default function MosqueFinder() {
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       (pos) => {
-        // B3 fix: ignore callbacks after settled
         if (settledRef.current) return;
 
         const posAccuracy = pos.coords.accuracy;
@@ -233,7 +221,6 @@ export default function MosqueFinder() {
         }
       },
       (err) => {
-        // B3 fix: ignore error callbacks after settled (e.g. timer already fired)
         if (settledRef.current) return;
         settle();
         if (err.code === err.PERMISSION_DENIED) {
