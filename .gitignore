@@ -45,3 +45,4 @@ next-env.d.ts
 
 # internal documents
 /documents/
+dev.log

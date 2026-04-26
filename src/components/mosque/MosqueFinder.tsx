@@ -62,7 +62,8 @@ function getCached(key: string): Mosque[] | null {
       return null;
     }
     return data;
-  } catch {
+  } catch (error) {
+    console.warn("Failed to get cached mosques from sessionStorage:", error);
     return null;
   }
 }
@@ -70,8 +71,9 @@ function getCached(key: string): Mosque[] | null {
 function setCache(key: string, data: Mosque[]) {
   try {
     sessionStorage.setItem(key, JSON.stringify({ data, ts: Date.now() }));
-  } catch {
+  } catch (error) {
     // sessionStorage full or unavailable
+    console.warn("Failed to set cache in sessionStorage:", error);
   }
 }
 
@@ -312,7 +314,8 @@ export default function MosqueFinder() {
         // U6 fix: distinct "API error" message
         setError(data.error || "Server gagal memuat data masjid. Coba tekan Refresh.");
       }
-    } catch {
+    } catch (error) {
+      console.warn("Network error fetching mosques:", error);
       // U6 fix: distinct "network error" message
       setError("Gagal terhubung ke server. Periksa koneksi internet dan coba lagi.");
     } finally {
