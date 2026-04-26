@@ -28,7 +28,7 @@ function evictOldScheduleCaches() {
 
 export async function reverseGeocodeCity(lat: number, lng: number): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
   try {
     const res = await fetch(`${API_BASE}/geocode?lat=${lat}&lng=${lng}`, {
       signal: controller.signal,
