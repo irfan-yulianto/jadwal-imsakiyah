@@ -3,6 +3,7 @@ import { SCHEDULE_CACHE_MAX_AGE } from "@/lib/constants";
 
 const API_BASE = "/api";
 const REQUEST_TIMEOUT = 15000; // 15 seconds
+const EXTERNAL_API_TIMEOUT = 5000; // 5 seconds for fail-fast external calls
 
 function evictOldScheduleCaches() {
   const now = Date.now();
@@ -28,7 +29,7 @@ function evictOldScheduleCaches() {
 
 export async function reverseGeocodeCity(lat: number, lng: number): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 5000);
+  const timeoutId = setTimeout(() => controller.abort(), EXTERNAL_API_TIMEOUT);
   try {
     const res = await fetch(`${API_BASE}/geocode?lat=${lat}&lng=${lng}`, {
       signal: controller.signal,
