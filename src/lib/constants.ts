@@ -69,3 +69,6 @@ export const TIMEZONE_OFFSETS: Record<string, number> = {
   WITA: 8,
   WIT: 9,
 };
+
+export const REQUEST_TIMEOUT = 15000; // 15 seconds
+export const EXTERNAL_API_TIMEOUT = 5000; // 5 seconds for fail-fast behavior
