@@ -1,0 +1,3 @@
+## 2024-05-19 - Clear Button in Search Inputs
+**Learning:** Adding a clear button (X icon) to search inputs conditionally based on input length is a crucial micro-interaction that enhances usability, especially on mobile devices where deleting text manually can be tedious. This app specifically benefits from absolute positioning of the clear button and increased right padding on the input to prevent text overlap.
+**Action:** Always ensure search inputs have a quick-clear mechanism (e.g., an X icon) that appears when text is present. Use absolute positioning within a relative container, and add adequate `pr-[value]` to the input field to prevent text from rendering underneath the clear button.
