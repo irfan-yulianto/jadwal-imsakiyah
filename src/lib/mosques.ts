@@ -22,10 +22,11 @@ interface OverpassResponse {
 }
 
 /**
- * Calculate distance between two coordinates using Haversine formula.
- * Returns distance in meters.
+ * Calculate distance between two coordinates using Equirectangular approximation.
+ * Faster than Haversine and perfectly adequate for short distances.
+ * Includes antimeridian wrap-around handling.
  */
-export function haversineDistance(
+export function equirectangularDistance(
   lat1: number,
   lng1: number,
   lat2: number,
@@ -33,12 +34,18 @@ export function haversineDistance(
 ): number {
   const R = 6371000; // Earth's radius in meters
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLng = toRad(lng2 - lng1);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  const lat1Rad = toRad(lat1);
+  const lat2Rad = toRad(lat2);
+  const dLat = lat2Rad - lat1Rad;
+
+  let dLngDeg = lng2 - lng1;
+  if (dLngDeg > 180) dLngDeg -= 360;
+  else if (dLngDeg < -180) dLngDeg += 360;
+
+  const dLng = toRad(dLngDeg);
+  const x = dLng * Math.cos((lat1Rad + lat2Rad) / 2);
+  return R * Math.sqrt(x * x + dLat * dLat);
 }
 
 /**
@@ -126,7 +133,7 @@ export function parseOverpassResponse(
       name,
       lat: center.lat,
       lng: center.lng,
-      distance: haversineDistance(userLat, userLng, center.lat, center.lng),
+      distance: equirectangularDistance(userLat, userLng, center.lat, center.lng),
       address,
     });
   }
