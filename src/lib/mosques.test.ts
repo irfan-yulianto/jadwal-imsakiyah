@@ -1,44 +1,44 @@
 import { describe, it, expect } from "vitest";
 import {
-  haversineDistance,
+  equirectangularDistance,
   formatDistance,
   getSearchRadius,
   buildOverpassQuery,
   parseOverpassResponse,
 } from "./mosques";
 
-describe("haversineDistance", () => {
+describe("equirectangularDistance", () => {
   it("returns 0 for identical coordinates", () => {
-    expect(haversineDistance(-6.17, 106.85, -6.17, 106.85)).toBe(0);
+    expect(equirectangularDistance(-6.17, 106.85, -6.17, 106.85)).toBe(0);
   });
 
   it("calculates Jakarta to Bandung (~120km)", () => {
-    const dist = haversineDistance(-6.17, 106.85, -6.91, 107.61);
+    const dist = equirectangularDistance(-6.17, 106.85, -6.91, 107.61);
     expect(dist).toBeGreaterThan(110000);
     expect(dist).toBeLessThan(130000);
   });
 
   it("calculates short distance (~100m)", () => {
     // ~100m apart along latitude
-    const dist = haversineDistance(-6.17, 106.85, -6.1709, 106.85);
+    const dist = equirectangularDistance(-6.17, 106.85, -6.1709, 106.85);
     expect(dist).toBeGreaterThan(80);
     expect(dist).toBeLessThan(120);
   });
 
   it("is symmetric", () => {
-    const a = haversineDistance(-6.17, 106.85, -6.91, 107.61);
-    const b = haversineDistance(-6.91, 107.61, -6.17, 106.85);
+    const a = equirectangularDistance(-6.17, 106.85, -6.91, 107.61);
+    const b = equirectangularDistance(-6.91, 107.61, -6.17, 106.85);
     expect(a).toBeCloseTo(b, 5);
   });
 
   it("handles negative latitudes (southern hemisphere)", () => {
-    const dist = haversineDistance(-8.65, 115.22, -7.25, 112.75);
+    const dist = equirectangularDistance(-8.65, 115.22, -7.25, 112.75);
     expect(dist).toBeGreaterThan(0);
   });
 
   it("handles equator crossing", () => {
     // Pontianak (~0 lat) to Jakarta
-    const dist = haversineDistance(-0.02, 109.34, -6.17, 106.85);
+    const dist = equirectangularDistance(-0.02, 109.34, -6.17, 106.85);
     expect(dist).toBeGreaterThan(600000);
     expect(dist).toBeLessThan(800000);
   });

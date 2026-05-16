@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useStore } from "@/store/useStore";
-import { Mosque, formatDistance, getSearchRadius, haversineDistance } from "@/lib/mosques";
+import { Mosque, formatDistance, getSearchRadius, equirectangularDistance } from "@/lib/mosques";
 import { CITIES, CITY_MAP } from "@/lib/cities";
 import { MosqueIcon, MapPinIcon, SearchIcon } from "@/components/ui/Icons";
 
@@ -332,7 +332,7 @@ export default function MosqueFinder() {
     const switchingToGps = isGps && !lastFetchWasGpsRef.current && lastFetchCoordsRef.current !== null;
 
     if (lastFetchCoordsRef.current && !switchingToGps) {
-      const dist = haversineDistance(
+      const dist = equirectangularDistance(
         lastFetchCoordsRef.current.lat, lastFetchCoordsRef.current.lng,
         coords.lat, coords.lng
       );
