@@ -1,0 +1,3 @@
+## 2024-05-18 - Added Clear Button to Location Search
+**Learning:** Adding an absolute positioned clear button (e.g., an `XIcon`) inside search inputs that conditionally renders when the query length is > 0 is a standard micro-UX pattern. Ensure to add adequate right padding (e.g., `pr-9`) to the input to prevent text overlap, conditionally hide the button during loading states (e.g., `isSearching`) to avoid layout collisions, and use `aria-label` with keyboard-friendly interactions (returning focus to the input upon clearing).
+**Action:** Implement a clear button inside the input field in `LocationSearch.tsx` to easily clear queries, improving accessibility and usability.
