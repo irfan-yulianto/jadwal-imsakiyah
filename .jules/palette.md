@@ -1,0 +1,3 @@
+## 2024-05-20 - Clear Search Input Button Pattern
+**Learning:** Adding a clear search button inside an input field requires careful positioning and padding handling. Conditionally hiding the button when a loading spinner is active prevents layout overlap, and adding `pointer-events-none` to the spinner's container prevents the spinner from intercepting clicks meant for the underlying input field.
+**Action:** Always add an explicit clear button (`XIcon`) with proper `aria-label` to active search inputs for better UX and keyboard accessibility. Use conditional rendering to handle loading states smoothly.
